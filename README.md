@@ -1,2 +1,2 @@
 # photon-main
-Main software for Photon Laser Tag
+Team 10's software for Photon Laser Tag
