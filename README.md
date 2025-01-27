@@ -1,7 +1,7 @@
 # photon-main
 Team 10's software for Photon Laser Tag
 
-# How to build
+## How to build
 ### Prerequisites
 - Install [Maven](https://maven.apache.org/install.html)
 - Install [JDK 17](https://www.oracle.com/java/technologies/downloads/#java17-linux)
