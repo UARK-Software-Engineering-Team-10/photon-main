@@ -1,12 +1,9 @@
 #!/bin/bash -e
 
-echo "Finding and deleting class files.."
-find ./ -type f -name *.class -exec rm {} \;
+mvn clean install
+mvn dependency:copy-dependencies
+cd target
+java -jar photon-1.0-SNAPSHOT.jar
 
-echo "Compiling source code.."
-javac *.java
-
-echo "Running program."
-java Main
-
-echo "Program ended."
+echo "Press enter to close"
+read
