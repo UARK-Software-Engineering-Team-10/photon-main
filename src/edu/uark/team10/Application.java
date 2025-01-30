@@ -97,3 +97,4 @@ public class Application extends JFrame { // JFrame lets us create windows
     this.validate();
 }
 
+}
