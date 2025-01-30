@@ -58,37 +58,42 @@ public class Application extends JFrame { // JFrame lets us create windows
     }
 
     // Changes the screen to the player entry screen
-    private void playerEntryScreen()
-    {
-        this.getContentPane().removeAll(); // Removes all components (buttons, labels, ..)
-        this.revalidate(); // Necessary when adding new components after using removeAll()
-        this.repaint();
+    private void playerEntryScreen() {
+    resetScreen();
 
-        final JPanel buttonPanel = new JPanel();
-        final JButton addPlayerButton = new JButton("Add Player");
+    final JPanel formPanel = new JPanel();
+    formPanel.setLayout(new BorderLayout(5, 5));
 
-        // This action will be performed when the button is pressed
-        addPlayerButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // TODO
-                splashScreen(); // test action-replace later with correct action
-            }
-        });
+    // Player entry form components
+    final JLabel nameLabel = new JLabel("Player Name:");
+    final JTextField nameField = new JTextField(20);
+    final JButton submitButton = new JButton("Add Player");
 
-        buttonPanel.add(addPlayerButton);
+    // Handle player submission
+    submitButton.addActionListener(e -> {
+        String playerName = nameField.getText().trim();
+        if (playerName.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please enter a player name.", "Input Error", JOptionPane.ERROR_MESSAGE);
+        } else {
+            // Placeholder for adding the player to the game logic
+            System.out.println("Player added: " + playerName); // Debugging output
+            nameField.setText(""); // Clear the input field for the next player
+        }
+    });
 
-        final JPanel textPanel = new JPanel();
-        final JLabel titleLabel = new JLabel("Photon Laser Tag | Add Players");
+    formPanel.add(nameLabel, BorderLayout.WEST);
+    formPanel.add(nameField, BorderLayout.CENTER);
+    formPanel.add(submitButton, BorderLayout.EAST);
 
-        textPanel.add(titleLabel);
-        
-        // Add the components to the frame
-        this.setLayout(new BorderLayout());
-        this.add(buttonPanel, BorderLayout.CENTER);
-        this.add(textPanel, BorderLayout.NORTH);
+    final JPanel titlePanel = new JPanel();
+    final JLabel titleLabel = new JLabel("Photon Laser Tag | Add Players");
+    titlePanel.add(titleLabel);
 
-        this.validate(); // Necessary when adding new components after using removeAll()
-    }
+    // Add the components to the frame
+    this.setLayout(new BorderLayout());
+    this.add(titlePanel, BorderLayout.NORTH);
+    this.add(formPanel, BorderLayout.CENTER);
 
+    this.validate();
 }
+
