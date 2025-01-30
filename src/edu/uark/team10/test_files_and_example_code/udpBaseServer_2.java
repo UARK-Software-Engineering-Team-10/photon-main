@@ -1,4 +1,4 @@
-package src.edu.uark.team10.test_files_and_example_code;
+package edu.uark.team10.test_files_and_example_code;
 
 // example code
 

@@ -1,4 +1,4 @@
-package src.edu.uark.team10;
+package edu.uark.team10;
 
 public class Main {
 

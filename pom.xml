@@ -47,7 +47,7 @@
               <manifest>
                 <addClasspath>true</addClasspath>
                 <classpathPrefix>lib/</classpathPrefix>
-                <mainClass>src.edu.uark.team10.Main</mainClass>
+                <mainClass>edu.uark.team10.Main</mainClass>
               </manifest>
             </archive>
           </configuration>

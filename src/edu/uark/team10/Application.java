@@ -1,9 +1,13 @@
-package src.edu.uark.team10;
+package edu.uark.team10;
 
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseListener;
+import java.io.File;
+import java.awt.event.MouseEvent;
 
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -15,7 +19,7 @@ public class Application extends JFrame { // JFrame lets us create windows
     public Application()
     {
         this.setTitle("Photon Laser Tag");
-        this.setSize(700, 500);
+        this.setSize(1151, 733);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setResizable(true);
 
@@ -29,30 +33,39 @@ public class Application extends JFrame { // JFrame lets us create windows
         this.getContentPane().removeAll(); // Removes all components (buttons, labels, ..)
         this.revalidate(); // Necessary when adding new components after using removeAll()
         this.repaint();
-        
 
-        final JPanel buttonPanel = new JPanel();
-        final JButton startButton = new JButton("Start");
+        final JPanel splashPanel = new JPanel();
+        final JLabel splashLabel = new JLabel();
 
-        // Changes to the player entry screen when the button is pressed
-        startButton.addActionListener(new ActionListener() {
+        splashLabel.setIcon(new ImageIcon("../src/edu/uark/team10/assets/logo.png")); // TODO Add assets to jar
+        splashPanel.add(splashLabel);
+
+        splashPanel.addMouseListener(new MouseListener() {
+
             @Override
-            public void actionPerformed(ActionEvent e) {
+            public void mouseClicked(MouseEvent e) // Changes to the player entry screen when the screen is clicked
+            {
                 playerEntryScreen();
             }
+
+            // Unused abstract methods
+            @Override
+            public void mousePressed(MouseEvent e) {}
+
+            @Override
+            public void mouseReleased(MouseEvent e) {}
+
+            @Override
+            public void mouseEntered(MouseEvent e) {}
+
+            @Override
+            public void mouseExited(MouseEvent e) {}
+
         });
-
-        buttonPanel.add(startButton);
-
-        final JPanel textPanel = new JPanel();
-        final JLabel titleLabel = new JLabel("Photon Laser Tag | Welcome");
-
-        textPanel.add(titleLabel);
         
-        // Add the components to the frame
+        // Add the panel to the frame
         this.setLayout(new BorderLayout());
-        this.add(buttonPanel, BorderLayout.CENTER);
-        this.add(textPanel, BorderLayout.NORTH);
+        this.add(splashPanel, BorderLayout.CENTER);
 
         this.validate(); // Necessary when adding new components after using removeAll()
     }
