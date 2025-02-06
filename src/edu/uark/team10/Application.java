@@ -70,38 +70,44 @@ public class Application extends JFrame { // JFrame lets us create windows
     }
 
     // Changes the screen to the player entry screen
-    private void playerEntryScreen()
-    {
-        this.getContentPane().removeAll(); // Removes all components (buttons, labels, ..)
-        this.revalidate(); // Necessary when adding new components after using removeAll()
-        this.repaint();
+   private void playerEntryScreen() {
+    this.getContentPane().removeAll();
+    this.revalidate();
+    this.repaint();
 
-        final JPanel buttonPanel = new JPanel();
-        final JButton addPlayerButton = new JButton("Add Player");
+    // Create panel for player entry
+    JPanel formPanel = new JPanel();
+    formPanel.setLayout(new BorderLayout(10, 10));
 
-        // This action will be performed when the button is pressed
-        addPlayerButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // TODO
-                splashScreen(); // test action-replace later with correct action
-                
-            }
-        });
+    JLabel nameLabel = new JLabel("Enter Player Name:");
+    JTextField nameField = new JTextField(20);
 
-        buttonPanel.add(addPlayerButton);
+    formPanel.add(nameLabel, BorderLayout.NORTH);
+    formPanel.add(nameField, BorderLayout.CENTER);
 
-        final JPanel textPanel = new JPanel();
-        final JLabel titleLabel = new JLabel("Photon Laser Tag | Add Players");
+    // Add Player Button
+    JButton addPlayerButton = new JButton("Add Player");
 
-        textPanel.add(titleLabel);
-        
-        // Add the components to the frame
-        this.setLayout(new BorderLayout());
-        this.add(buttonPanel, BorderLayout.CENTER);
-        this.add(textPanel, BorderLayout.NORTH);
+    addPlayerButton.addActionListener(e -> {
+        String playerName = nameField.getText().trim();
 
-        this.validate(); // Necessary when adding new components after using removeAll()
-    }
+        if (playerName.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please enter a player name.", "Input Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Simulate player entry
+        System.out.println("Player Added: " + playerName);
+        splashScreen(); // Navigate back to splash screen after successful entry
+    });
+
+    // Layout adjustments
+    this.setLayout(new BorderLayout());
+    this.add(formPanel, BorderLayout.CENTER);
+    this.add(addPlayerButton, BorderLayout.SOUTH);
+
+    this.validate();
+}
+
 
 }
