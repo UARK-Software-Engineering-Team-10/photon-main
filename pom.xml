@@ -22,17 +22,8 @@
 
     <resources>
 			<resource>
-				<targetPath>.</targetPath>
-				<filtering>true</filtering>
-				<directory>${basedir}/</directory>
-				<includes>
-					<include>*.png</include>
-          <include>*.jpg</include>
-          <include>*.wav</include>
-          <include>*.png</include>
-          <include>*.mp3</include>
-          <include>*.tif</include>
-				</includes>
+      <targetPath>edu/uark/team10/assets</targetPath>
+				<directory>${basedir}/src/edu/uark/team10/assets</directory>
 			</resource>
 		</resources>
     
