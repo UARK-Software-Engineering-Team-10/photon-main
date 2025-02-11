@@ -92,14 +92,20 @@ public class Application extends JFrame { // JFrame lets us create windows
 
     addPlayerButton.addActionListener(e -> {
         String playerName = nameField.getText().trim();
+        int machineId = 0; // TODO get machine id from user
 
         if (playerName.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Please enter a player name.", "Input Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
+        // Add player to database
+        DB db = DB.get();
+        db.addPlayer(playerName, machineId);
+
         // Simulate player entry
         System.out.println("Player Added: " + playerName);
+        System.out.println("Machine ID: " + machineId);
         splashScreen(); // Navigate back to splash screen after successful entry
     });
 
