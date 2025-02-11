@@ -1,9 +1,9 @@
 #!/bin/bash -e
 
-mvn clean install
-mvn dependency:copy-dependencies
+mvn clean package
+#mvn dependency:copy-dependencies
 cd target
-java -jar photon-1.0-SNAPSHOT.jar
+java -jar photon.jar
 
 echo "Press enter to close"
 read

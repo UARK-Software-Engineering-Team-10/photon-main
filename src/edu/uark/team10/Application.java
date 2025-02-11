@@ -1,10 +1,8 @@
 package edu.uark.team10;
 
 import java.awt.BorderLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseListener;
-import java.io.File;
+import java.util.Random;
 import java.awt.event.MouseEvent;
 
 import javax.swing.ImageIcon;
@@ -93,14 +91,20 @@ public class Application extends JFrame { // JFrame lets us create windows
 
     addPlayerButton.addActionListener(e -> {
         String playerName = nameField.getText().trim();
+        int machineId = new Random().nextInt(256) + 1; // TODO get machine id from user
 
         if (playerName.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Please enter a player name.", "Input Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
+        // Add player to database
+        DB db = DB.get();
+        db.addPlayer(machineId, playerName);
+
         // Simulate player entry
         System.out.println("Player Added: " + playerName);
+        System.out.println("Machine ID: " + machineId);
         splashScreen(); // Navigate back to splash screen after successful entry
     });
 
