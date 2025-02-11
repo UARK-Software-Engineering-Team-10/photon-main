@@ -33,13 +33,13 @@ public class DB {
 
             // Get table
             DatabaseMetaData dbMeta = DB.connection.getMetaData();
-            ResultSet resultSet = dbMeta.getTables(null, null, "playerdata", null);
+            ResultSet resultSet = dbMeta.getTables(null, null, "players", null);
 
             // Table does not exist
             if (!resultSet.next())
             {
                 // Create table
-                String query = "CREATE TABLE playerdata (playername VARCHAR(30), machineid int, score int);";
+                String query = "CREATE TABLE players (id INT, codename VARCHAR(30));";
                 query(query);
             }
 
@@ -62,12 +62,10 @@ public class DB {
 
             // Query the database
             Statement statement = DB.connection.createStatement();
-            ResultSet result = statement.executeQuery(query);
-            statement.close();
+            statement.execute(query);
+            //statement.close();
 
-            printTable();
-
-            return result;
+            return statement.getResultSet();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -78,29 +76,71 @@ public class DB {
     // Prints the entire table (for dev purposes)
     private static void printTable()
     {
-        String query = "SELECT * FROM playerdata;";
+        String query = "SELECT * FROM players;";
         ResultSet result = query(query);
 
-        System.out.println(result.toString());
+        System.out.println("Printing players table:");
+        try {
+            while (result.next())
+            {
+                for (int i = 1; i <= 2; i++)
+                {
+                    if (i == 1)
+                    {
+                        System.out.print(result.getInt(i) + " ");
+                    } else
+                    {
+                        System.out.print(result.getString(i) + " ");
+                    }
+                    
+                }
+
+                System.out.println("");
+            }
+
+            result.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        
     }
 
-    public void addPlayer(String playername, int machineId)
+    private void clearPlayers()
     {
-        String query = "INSERT INTO playerdata VALUES (" + playername + ", " + machineId + ", 0);";
+        String query = "DELETE FROM players *";
         query(query);
-
+        printTable();
     }
 
-    public void addScore(int machineId, int score)
+
+    public void addPlayer(int machineId, String playername)
     {
-        String queryGet = "SELECT score FROM playerdata WHERE machineId = " + machineId + ";";
+        if (playername.equals("clear"))
+        {
+            clearPlayers();
+            return;
+        }
+
+        removePlayer(machineId);
+
+        String query = "INSERT INTO players VALUES (" + machineId + ", '" + playername + "');";
+        query(query);
+        printTable();
+    }
+
+    public String getPlayername(int machineId)
+    {
+        String queryGet = "SELECT codename FROM players WHERE id = " + machineId + ";";
         ResultSet result = query(queryGet);
 
-        int newScore = Integer.valueOf(result.toString()) + score;
+        return result.toString();
+    }
 
-        String queryUpdate = "UPDATE playerdata SET score = " + newScore + ";";
-        query(queryUpdate);
-
+    public void removePlayer(int machineId)
+    {
+        String query = "DELETE FROM players WHERE id = " + machineId + ";";
+        query(query);
     }
 
     public void shutdown()
