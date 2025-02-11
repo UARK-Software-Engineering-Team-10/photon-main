@@ -99,18 +99,41 @@ public class Application extends JFrame { // JFrame lets us create windows
     // Get all players and convert the data into the correct type
     HashMap<Integer, String> players = DB.get().getAllPlayers();
     Object[] playerMachineIds = players.keySet().toArray();
-    Object[][] rowData = new Object[players.size()][2];
+    Object[][] tableDataRedTeam = new Object[20][2];
+    Object[][] tableDataGreenTeam = new Object[20][2];
     Object[] columnNames = Arrays.asList("Machine ID", "Playername").toArray();
 
+    /*
     // Convert hashmap into 2D array
-    for (int i = 0; i < players.size(); i++)
+    for (int i = 0; i < players.size() && i < 20; i++)
     {
-        rowData[i][0] = playerMachineIds[i];
-        rowData[i][1] = players.get(playerMachineIds[i]);
+        if (i % 2 == 0)
+        {
+            tableDataRedTeam[i][0] = playerMachineIds[i];
+            tableDataRedTeam[i][1] = players.get(playerMachineIds[i]);
+        } else
+        {
+            tableDataGreenTeam[i - 1][0] = playerMachineIds[i];
+            tableDataGreenTeam[i - 1][1] = players.get(playerMachineIds[i]);
+        }
+
     }
+    */
     
     // Create the table
-    JTable playerTable = new JTable(rowData, columnNames) {
+    JTable tableRedTeam = new JTable(tableDataRedTeam, columnNames);
+    tableRedTeam.setFillsViewportHeight(true);
+    tableRedTeam.setRowSelectionAllowed(false);
+    tableRedTeam.setColumnSelectionAllowed(false);
+    tableRedTeam.setBackground(Color.RED);
+    //tableRedTeam.putClientProperty("terminateEditOnFocusLost", true);
+    JTable tableGreenTeam = new JTable(tableDataGreenTeam, columnNames);
+    tableGreenTeam.setFillsViewportHeight(true);
+    tableGreenTeam.setRowSelectionAllowed(false);
+    tableGreenTeam.setColumnSelectionAllowed(false);
+    tableGreenTeam.setBackground(Color.GREEN);
+    //tableGreenTeam.putClientProperty("terminateEditOnFocusLost", true);
+    /* {
         @Override
         public void editingStopped(ChangeEvent e)
         {
@@ -145,12 +168,16 @@ public class Application extends JFrame { // JFrame lets us create windows
 
         }
         
-    };
-    JScrollPane tableScrollPane = new JScrollPane(playerTable); // Add the table to the container
-    playerTable.setFillsViewportHeight(true);
-    playerTable.setRowSelectionAllowed(false);
-    playerTable.setColumnSelectionAllowed(false);
-    playerTable.putClientProperty("terminateEditOnFocusLost", true);
+    };*/
+    JPanel tablePanel = new JPanel();
+    // Add the table to the pane
+    JScrollPane scrollPanelRedTeam = new JScrollPane(tableRedTeam);
+    //scrollPanelRedTeam.setBackground(Color.RED);
+    JScrollPane scrollPanelGreenTeam = new JScrollPane(tableGreenTeam);
+    //scrollPanelGreenTeam.setBackground(Color.GREEN);
+    // Add the panes to the panel
+    tablePanel.add(scrollPanelRedTeam, BorderLayout.WEST);
+    tablePanel.add(scrollPanelGreenTeam, BorderLayout.EAST);
 
     // Create panel for player entry
     JPanel formPanel = new JPanel();
@@ -188,7 +215,7 @@ public class Application extends JFrame { // JFrame lets us create windows
     this.setLayout(new BorderLayout());
     this.add(formPanel, BorderLayout.CENTER);
     this.add(addPlayerButton, BorderLayout.SOUTH);
-    this.add(tableScrollPane, BorderLayout.NORTH);
+    this.add(tablePanel, BorderLayout.NORTH);
 
     this.validate();
 }
