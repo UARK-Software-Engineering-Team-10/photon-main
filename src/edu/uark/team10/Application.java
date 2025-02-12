@@ -1,27 +1,30 @@
 package edu.uark.team10;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.event.MouseListener;
-import java.util.Random;
+import java.net.URL;
 import java.awt.event.MouseEvent;
 
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JTextField;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
 
 public class Application extends JFrame { // JFrame lets us create windows
     
     // Create a basic and blank window
     public Application()
     {
+        URL logoUrl = getClass().getClassLoader().getResource("edu/uark/team10/assets/logo.png");
+        ImageIcon logoImage = new ImageIcon(logoUrl);
+        
         this.setTitle("Photon Laser Tag");
-        this.setSize(1151, 733);
+        this.setSize(logoImage.getIconWidth(), logoImage.getIconHeight());
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.setResizable(true);
+        this.setResizable(false);
 
         // Sets the screen to splash screen on startup
         splashScreen();
@@ -37,9 +40,13 @@ public class Application extends JFrame { // JFrame lets us create windows
         final JPanel splashPanel = new JPanel();
         final JLabel splashLabel = new JLabel();
 
-        splashLabel.setIcon(new ImageIcon("../src/edu/uark/team10/assets/logo.png")); // TODO Add assets to jar
+        // Load the logo image
+        URL logoUrl = getClass().getClassLoader().getResource("edu/uark/team10/assets/logo.png");
+        ImageIcon logoImage = new ImageIcon(logoUrl);
+        splashLabel.setIcon(logoImage); // Set the width and height to match the image
         splashPanel.add(splashLabel);
 
+        // Add a listener to the panel
         splashPanel.addMouseListener(new MouseListener() {
 
             @Override
@@ -71,50 +78,74 @@ public class Application extends JFrame { // JFrame lets us create windows
     }
 
     // Changes the screen to the player entry screen
-   private void playerEntryScreen() {
-    this.getContentPane().removeAll();
-    this.revalidate();
-    this.repaint();
+    private void playerEntryScreen() {
+        this.getContentPane().removeAll();
+        this.revalidate();
+        this.repaint();
+        
+        // Create the red team table
+        JTable tableRedTeam = new JTable(new PlayerEntryTableModel()); // Include the custom table model
+        tableRedTeam.setFillsViewportHeight(true);
+        tableRedTeam.setRowSelectionAllowed(false);
+        tableRedTeam.setColumnSelectionAllowed(false);
+        tableRedTeam.setBackground(Color.RED);
+        // Create the green team table
+        JTable tableGreenTeam = new JTable(new PlayerEntryTableModel()); // Include the custom table model
+        tableGreenTeam.setFillsViewportHeight(true);
+        tableGreenTeam.setRowSelectionAllowed(false);
+        tableGreenTeam.setColumnSelectionAllowed(false);
+        tableGreenTeam.setBackground(Color.GREEN);
 
-    // Create panel for player entry
-    JPanel formPanel = new JPanel();
-    formPanel.setLayout(new BorderLayout(10, 10));
+        // Add the table to the pane
+        JScrollPane scrollPanelRedTeam = new JScrollPane(tableRedTeam);
+        JScrollPane scrollPanelGreenTeam = new JScrollPane(tableGreenTeam);
 
-    JLabel nameLabel = new JLabel("Enter Player Name:");
-    JTextField nameField = new JTextField(20);
+        // Add the panes to a panel
+        JPanel tablePanel = new JPanel();
+        tablePanel.add(scrollPanelRedTeam, BorderLayout.WEST);
+        tablePanel.add(scrollPanelGreenTeam, BorderLayout.EAST);
 
-    formPanel.add(nameLabel, BorderLayout.NORTH);
-    formPanel.add(nameField, BorderLayout.CENTER);
+        /*
+        // Create panel for player entry
+        JPanel formPanel = new JPanel();
+        formPanel.setLayout(new BorderLayout(10, 10));
 
-    // Add Player Button
-    JButton addPlayerButton = new JButton("Add Player");
+        JLabel nameLabel = new JLabel("Enter Player Name:");
+        JTextField nameField = new JTextField(1);
 
-    addPlayerButton.addActionListener(e -> {
-        String playerName = nameField.getText().trim();
-        int machineId = new Random().nextInt(256) + 1; // TODO get machine id from user
+        formPanel.add(nameLabel, BorderLayout.NORTH);
+        formPanel.add(nameField, BorderLayout.CENTER);
 
-        if (playerName.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please enter a player name.", "Input Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
+        // Add Player Button
+        JButton addPlayerButton = new JButton("Add Player");
 
-        // Add player to database
-        DB db = DB.get();
-        db.addPlayer(machineId, playerName);
+        addPlayerButton.addActionListener(e -> {
+            String playerName = nameField.getText().trim();
+            int machineId = new Random().nextInt(256) + 1; // TODO get machine id from user
 
-        // Simulate player entry
-        System.out.println("Player Added: " + playerName);
-        System.out.println("Machine ID: " + machineId);
-        splashScreen(); // Navigate back to splash screen after successful entry
-    });
+            if (playerName.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please enter a player name.", "Input Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
 
-    // Layout adjustments
-    this.setLayout(new BorderLayout());
-    this.add(formPanel, BorderLayout.CENTER);
-    this.add(addPlayerButton, BorderLayout.SOUTH);
+            // Add player to database
+            DB db = DB.get();
+            db.addPlayer(machineId, playerName);
 
-    this.validate();
-}
+            // Simulate player entry
+            System.out.println("Player Added: " + playerName);
+            System.out.println("Machine ID: " + machineId);
+            splashScreen();
+        });
+        */
 
+        // Layout adjustments
+        this.setLayout(new BorderLayout());
+        //this.add(formPanel, BorderLayout.CENTER);
+        //this.add(addPlayerButton, BorderLayout.SOUTH);
+        this.add(tablePanel, BorderLayout.CENTER);
+
+        this.validate();
+    }
 
 }

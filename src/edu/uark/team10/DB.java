@@ -6,6 +6,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashMap;
 
 public class DB {
 
@@ -137,10 +138,47 @@ public class DB {
         return result.toString();
     }
 
+    public HashMap<Integer, String> getAllPlayers()
+    {
+        HashMap<Integer, String> players = new HashMap<>();
+
+        String query = "SELECT * FROM players;";
+        ResultSet result = query(query);
+
+        try {
+            while (result.next())
+            {
+                int machineId = 0;
+                String playername = "";
+
+                for (int i = 1; i <= 2; i++)
+                {
+                    if (i == 1)
+                    {
+                        machineId = result.getInt(i);
+                    } else
+                    {
+                        playername = result.getString(i);
+                    }
+                    
+                }
+
+                players.put(machineId, playername);
+            }
+
+            result.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return players;
+    }
+
     public void removePlayer(int machineId)
     {
         String query = "DELETE FROM players WHERE id = " + machineId + ";";
         query(query);
+        printTable();
     }
 
     public void shutdown()
