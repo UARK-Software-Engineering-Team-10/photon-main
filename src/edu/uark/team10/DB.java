@@ -178,6 +178,7 @@ public class DB {
     {
         String query = "DELETE FROM players WHERE id = " + machineId + ";";
         query(query);
+        printTable();
     }
 
     public void shutdown()
