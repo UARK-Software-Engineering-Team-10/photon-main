@@ -12,6 +12,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.table.TableColumnModel;
 
 public class Application extends JFrame { // JFrame lets us create windows
     
@@ -85,20 +86,53 @@ public class Application extends JFrame { // JFrame lets us create windows
         
         // Create the red team table
         JTable tableRedTeam = new JTable(new PlayerEntryTableModel()); // Include the custom table model
+        tableRedTeam.setModel(new PlayerEntryTableModel());
         tableRedTeam.setFillsViewportHeight(true);
+        tableRedTeam.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         tableRedTeam.setRowSelectionAllowed(false);
         tableRedTeam.setColumnSelectionAllowed(false);
-        tableRedTeam.setBackground(Color.RED);
+        tableRedTeam.setBackground(new Color(122, 0, 0));
+
         // Create the green team table
         JTable tableGreenTeam = new JTable(new PlayerEntryTableModel()); // Include the custom table model
+        tableGreenTeam.setModel(new PlayerEntryTableModel());
+        tableGreenTeam.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         tableGreenTeam.setFillsViewportHeight(true);
         tableGreenTeam.setRowSelectionAllowed(false);
         tableGreenTeam.setColumnSelectionAllowed(false);
-        tableGreenTeam.setBackground(Color.GREEN);
+        tableGreenTeam.setBackground(new Color(0, 122, 0));
+
+        // Custom cell renderer
+        PlayerEntryTableCellRenderer cellRenderer = new PlayerEntryTableCellRenderer();
+
+        // Set cell renderer for red team
+        TableColumnModel columnModelRedTeam = tableRedTeam.getColumnModel();
+        columnModelRedTeam.getColumn(0).setPreferredWidth(20);
+        columnModelRedTeam.getColumn(1).setPreferredWidth(100);
+        columnModelRedTeam.getColumn(2).setPreferredWidth(200);
+        
+        columnModelRedTeam.getColumn(0).setCellRenderer(cellRenderer);
+        columnModelRedTeam.getColumn(1).setCellRenderer(cellRenderer);
+        columnModelRedTeam.getColumn(2).setCellRenderer(cellRenderer);
+        columnModelRedTeam.setColumnMargin(4);
+        
+        // Set cell renderer for green team
+        TableColumnModel columnModelGreenTeam = tableGreenTeam.getColumnModel();
+        columnModelGreenTeam.getColumn(0).setPreferredWidth(20);
+        columnModelGreenTeam.getColumn(1).setPreferredWidth(100);
+        columnModelGreenTeam.getColumn(2).setPreferredWidth(200);
+
+        columnModelGreenTeam.getColumn(0).setCellRenderer(cellRenderer);
+        columnModelGreenTeam.getColumn(1).setCellRenderer(cellRenderer);
+        columnModelGreenTeam.getColumn(2).setCellRenderer(cellRenderer);
+        columnModelGreenTeam.setColumnMargin(4);
 
         // Add the table to the pane
         JScrollPane scrollPanelRedTeam = new JScrollPane(tableRedTeam);
+        //scrollPanelRedTeam.setSize(tableRedTeam.getWidth(), tableRedTeam.getHeight());
+
         JScrollPane scrollPanelGreenTeam = new JScrollPane(tableGreenTeam);
+        //scrollPanelGreenTeam.setSize(tableGreenTeam.getWidth(), tableGreenTeam.getHeight());
 
         // Add the panes to a panel
         JPanel tablePanel = new JPanel();

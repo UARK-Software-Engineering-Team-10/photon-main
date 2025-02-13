@@ -4,4 +4,5 @@ edu\uark\team10\PlayerEntryTableModel.class
 edu\uark\team10\DB.class
 edu\uark\team10\Application.class
 edu\uark\team10\Main.class
+edu\uark\team10\PlayerEntryTableCellRenderer.class
 edu\uark\team10\test_files_and_example_code\udpBaseClient_2.class

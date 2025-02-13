@@ -17,8 +17,19 @@ public class PlayerEntryTableModel extends AbstractTableModel
 
     // Basic table data
     private final int maxPlayers = 20;
-    private String[] columnNames = new String[] {"Machine ID", "Playername"};
+    private String[] columnNames = new String[] {"", "Machine ID", "Playername"};
     private Object[][] players = new Object[maxPlayers][columnNames.length];
+
+    
+    public PlayerEntryTableModel()
+    {
+        for (int row = 0; row < players.length; row++)
+        {
+            players[row][0] = row + 1;
+        }
+
+    }
+    
 
     /*
      * Abstract methods that must be implemented from AbstractTableModel
@@ -34,7 +45,11 @@ public class PlayerEntryTableModel extends AbstractTableModel
 
         return players[row][col];
     }
-    public boolean isCellEditable(int row, int col) { return true; }
+    public boolean isCellEditable(int row, int col)
+    {
+        if (col == 0) return false;
+        return true;
+    }
 
     /*
      * This method is called when a cell is being edited, but before the changes happen.
@@ -61,7 +76,7 @@ public class PlayerEntryTableModel extends AbstractTableModel
 
         // If the edited cell is machine ID
         // Skip this step if value is blank/null
-        if (col == 0 && value != null)
+        if (col == 1 && value != null)
         {
             // Make sure it's an integer (or whitespace/null)
             try {
@@ -83,7 +98,7 @@ public class PlayerEntryTableModel extends AbstractTableModel
             machineIds.remove(oldValue);
             machineIds.add(value);
 
-        } else if (col == 1 && value != null) // If the edited cell is playername
+        } else if (col == 2 && value != null) // If the edited cell is playername
         {                                     // Skip this step if value is blank/null
             // Make sure there are no duplicate playernames
             if (playernames.contains(value))
@@ -97,10 +112,10 @@ public class PlayerEntryTableModel extends AbstractTableModel
 
         } else if (value == null) // User wants to delete the cell data
         {
-            if (col == 0)
+            if (col == 1)
             {
                 machineIds.remove(oldValue);
-            } else if (col == 1)
+            } else if (col == 2)
             {
                 playernames.remove(oldValue);
             }
@@ -109,14 +124,14 @@ public class PlayerEntryTableModel extends AbstractTableModel
         // Get the machine ID and playername if they exist
         Object machineIdObject = null;
         Object playernameObject = null;
-        if (col == 0 && getValueAt(row, 1) != null)
+        if (col == 1 && getValueAt(row, 2) != null)
         {
             machineIdObject = value;
-            playernameObject = getValueAt(row, 1);
+            playernameObject = getValueAt(row, 2);
             
-        } else if (col == 1 && getValueAt(row, 0) != null)
+        } else if (col == 2 && getValueAt(row, 1) != null)
         {
-            machineIdObject = getValueAt(row, 0);
+            machineIdObject = getValueAt(row, 1);
             playernameObject = value;
             
         }
@@ -130,11 +145,11 @@ public class PlayerEntryTableModel extends AbstractTableModel
         } else if (value == null && (machineIdObject != null || playernameObject != null))
         {   // The pair was broken, remove player from database
             Integer machineId = null;
-            if (col == 0)
+            if (col == 1)
             {
                 machineId = Integer.valueOf(String.valueOf(oldValue));
                 
-            } else
+            } else if (col == 2)
             {
                 machineId = Integer.valueOf(String.valueOf(machineIdObject));
             }
