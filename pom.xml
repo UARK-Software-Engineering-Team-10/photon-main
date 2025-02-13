@@ -121,6 +121,13 @@
       <version>42.7.5</version>
       <scope>compile</scope>
     </dependency>
+
+    <dependency>
+      <groupId>com.jfastnet</groupId>
+      <artifactId>jfastnet</artifactId>
+      <version>0.3.8</version>
+    </dependency>
+
   </dependencies>
 
 </project>
