@@ -2,13 +2,20 @@ package edu.uark.team10;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.event.MouseListener;
-import java.net.URL;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+
+import java.net.URL;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -26,8 +33,69 @@ public class Application extends JFrame { // JFrame lets us create windows
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setResizable(false);
 
+        // Setup the menu bar for Start/settings
+        setupMenuBar();
+
         // Sets the screen to splash screen on startup
         splashScreen();
+    }
+
+    private void setupMenuBar() {
+        JMenuBar menuBar = new JMenuBar();
+        JMenu gameMenu = new JMenu("Game");
+        JMenu settingsMenu = new JMenu("Settings");
+        
+        JMenuItem startGameItem = new JMenuItem("Start Game");
+        startGameItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                startUDPServer();
+                startUDPClient();
+                JOptionPane.showMessageDialog(null, "Game started!", "Game Status", JOptionPane.INFORMATION_MESSAGE);
+            }
+        });
+
+        JMenuItem changeIPNetwork = new JMenuItem("Change IP/Network");
+        changeIPNetwork.addActionListener(new ActionListener() {    // Request user input for IP/Network
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            String newIpAddress = JOptionPane.showInputDialog(null, "Enter new IP Address:", "Change IP/Network", JOptionPane.QUESTION_MESSAGE);
+
+            if (newIpAddress != null && !newIpAddress.trim().isEmpty()) { // Check if the input is not empty
+                JOptionPane.showMessageDialog(null, "IP Address changed to: " + newIpAddress, "IP/Network Status", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(null, "IP Address cannot be empty.", "Input Error", JOptionPane.ERROR_MESSAGE);
+            }
+            }
+        });
+
+        gameMenu.add(startGameItem);
+        settingsMenu.add(changeIPNetwork);
+        menuBar.add(gameMenu);
+        menuBar.add(settingsMenu);
+        this.setJMenuBar(menuBar);
+    }
+
+    private void startUDPServer() {
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder("xterm", "-hold", "-e", 
+                "java", "-cp", "../target/classes", "edu.uark.team10.UDPServer");
+            processBuilder.start();
+            System.out.println("UDP Server started.");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    private void startUDPClient() {
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder("xterm", "-hold", "-e", 
+                "java", "-cp", "../target/classes", "edu.uark.team10.UDPClient");
+            processBuilder.start();
+            System.out.println("UDP Client started.");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     // Changes the screen to the splash screen
