@@ -31,8 +31,8 @@ OS name: "linux", version: "5.10.0-33-amd64", arch: "amd64", family: "unix"
 
 ### Instructions
 - There is a run.bash included which will compile and run the project for you.
-- You can compile the project yourself by running `mvn clean install` in the project directory.
-- The jar is location in `target/`.
+- You can compile the project yourself by running `mvn clean package` in the project directory.
+- The jar is located in `target/`.
 
 ## Contributors
 * bkiscool -> Brandon Key

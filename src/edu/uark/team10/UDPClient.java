@@ -1,39 +1,47 @@
 package edu.uark.team10;
 
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketException;
-import java.net.UnknownHostException;
+import java.util.Scanner;
 
 public class UDPClient {
 
-    public void sendPacket(int taggerMachineId, int taggedMachineId)
-    {
+    public static void send(String message) {
+        // Define the broadcast address and port
+        String broadcastAddress = "127.0.0.1"; // Broadcast address
+        int port = 7500; // Port to broadcast on
+
         try {
-            int port = 0; // Set port to send on
-            String hostname = "192.168.1.111"; // Set address to send to
-            InetAddress address = InetAddress.getByName(hostname);
+            // Create a DatagramSocket
+            DatagramSocket socket = new DatagramSocket();
+            socket.setBroadcast(true); // Enable broadcast
 
-            String sendString = taggerMachineId + ":" + taggedMachineId; // Send this to the server formatted as tagger:tagged
-            byte[] sendData = sendString.getBytes();
+            byte[] buffer = message.getBytes();
 
-            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, address, port);
-            DatagramSocket sendSocket = new DatagramSocket();
-            sendSocket.send(sendPacket);
+            // Create a DatagramPacket with the broadcast address and port
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(broadcastAddress), port);
 
-            System.out.println("Sent data to server (" + sendString + ") to " + InetAddress.getLocalHost().getHostAddress() + ":" + port);
+            // Send the packet
+            socket.send(packet);
+            System.out.println("Broadcast message sent: " + message);
 
-            sendSocket.close();
-
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        } catch (SocketException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+            // Close the socket
+            socket.close();
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
     
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        
+        System.out.println("Enter a message to send or type 'exit' to quit:");
+        String message = scanner.nextLine();
+        
+        while(message != "exit") {
+            send(message);
+            message = scanner.nextLine();
+        }
+    }
 }

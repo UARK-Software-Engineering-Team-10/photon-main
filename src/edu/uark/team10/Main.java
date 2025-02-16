@@ -19,30 +19,30 @@ public class Main {
         application.setVisible(true);
         
         // 
-        Server server = new Server(new Config().setBindPort(15150));
-        Client client = new Client(new Config().setPort(15150));
+        // Server server = new Server(new Config().setBindPort(15150));
+        // Client client = new Client(new Config().setPort(15150));
 
-        server.start();
-        client.start();
-        client.blockingWaitUntilConnected();
+        // server.start();
+        // client.start();
+        // client.blockingWaitUntilConnected();
 
-        server.send(new PrintMessage("Hello Client!"));
-        client.send(new PrintMessage("Hello Server!"));
+        // server.send(new PrintMessage("Hello Client!"));
+        // client.send(new PrintMessage("Hello Server!"));
 
     }
 
-	public static class PrintMessage extends GenericMessage {
+	// public static class PrintMessage extends GenericMessage {
 
-		/** no-arg constructor required for serialization. */
-		private PrintMessage() {}
+	// 	/** no-arg constructor required for serialization. */
+	// 	private PrintMessage() {}
 
-		PrintMessage(Object object) { super(object); }
+	// 	PrintMessage(Object object) { super(object); }
 
-		@Override
-		public void process(Object context) {
-			System.out.println(object);
-			received.incrementAndGet();
-		}
-	}
+	// 	@Override
+	// 	public void process(Object context) {
+	// 		System.out.println(object);
+	// 		received.incrementAndGet();
+	// 	}
+	// }
     
 }
