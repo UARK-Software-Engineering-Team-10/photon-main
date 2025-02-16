@@ -3,6 +3,7 @@ package edu.uark.team10;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 
 public class UDPServer extends Thread {
 
@@ -30,7 +31,7 @@ public class UDPServer extends Thread {
 
             while (true) {
                 // Receive packet
-                DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
+                DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length, InetAddress.getByName(UDPServer.networkAddress), UDPServer.listenPort);
                 receiveSocket.receive(receivePacket);
                 
                 // Extract message and sender info
