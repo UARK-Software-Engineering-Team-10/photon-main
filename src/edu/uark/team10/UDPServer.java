@@ -3,7 +3,6 @@ package edu.uark.team10;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 
 public class UDPServer extends Thread {
 
@@ -24,15 +23,16 @@ public class UDPServer extends Thread {
         DatagramSocket receiveSocket = null;
 
         try {
-            receiveSocket = new DatagramSocket(listenPort, InetAddress.getByName(UDPServer.networkAddress));
+            receiveSocket = new DatagramSocket(UDPServer.listenPort);
             System.out.println("UDP Server is listening on port " + UDPServer.listenPort);
 
             byte[] receiveBuffer = new byte[1024];
 
             while (true) {
                 // Receive packet
-                DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length, InetAddress.getByName(UDPServer.networkAddress), UDPServer.listenPort);
+                DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
                 receiveSocket.receive(receivePacket);
+                
                 
                 // Extract message and sender info
                 String receivedMessage = new String(receivePacket.getData(), 0, receivePacket.getLength());
