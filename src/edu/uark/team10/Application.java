@@ -2,12 +2,15 @@ package edu.uark.team10;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 
 import java.net.URL;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
@@ -22,6 +25,9 @@ import javax.swing.JTable;
 import javax.swing.table.TableColumnModel;
 
 public class Application extends JFrame { // JFrame lets us create windows
+
+    private UDPServer server = null;
+    private Game game = null;
     
     // Create a basic and blank window
     public Application()
@@ -33,15 +39,14 @@ public class Application extends JFrame { // JFrame lets us create windows
         this.setSize(logoImage.getIconWidth(), logoImage.getIconHeight());
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setResizable(false);
-
-        // Setup the menu bar for Start/settings
-        setupMenuBar();
+        this.setVisible(true);
 
         // Sets the screen to splash screen on startup
         splashScreen();
     }
 
-    private void setupMenuBar() {
+    private void setupMenuBar(PlayerEntryTableModel tableModelRedTeam, PlayerEntryTableModel tableModelGreenTeam) {
+        // Setup the menu bar for Start/settings
         JMenuBar menuBar = new JMenuBar();
         JMenu gameMenu = new JMenu("Game");
         JMenu settingsMenu = new JMenu("Settings");
@@ -50,9 +55,19 @@ public class Application extends JFrame { // JFrame lets us create windows
         startGameItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                startUDPServer();
-                startUDPClient();
                 JOptionPane.showMessageDialog(null, "Game started!", "Game Status", JOptionPane.INFORMATION_MESSAGE);
+
+                for (Object[] playerData : tableModelRedTeam.getRowData(Game.RED_TEAM_NUMBER))
+                {
+                    game.addPlayer(playerData);
+                }
+
+                for (Object[] playerData : tableModelGreenTeam.getRowData(Game.GREEN_TEAM_NUMBER))
+                {
+                    game.addPlayer(playerData);
+                }
+
+                game.start(server); // Start the game
             }
         });
 
@@ -61,8 +76,10 @@ public class Application extends JFrame { // JFrame lets us create windows
             @Override
             public void actionPerformed(ActionEvent e) {
             String newIpAddress = JOptionPane.showInputDialog(null, "Enter new IP Address:", "Change IP/Network", JOptionPane.QUESTION_MESSAGE);
+            newIpAddress = newIpAddress.replaceAll("[^0-9.]", ""); // Only allow numbers and periods for ip addresses
 
-            if (newIpAddress != null && !newIpAddress.trim().isEmpty()) { // Check if the input is not empty
+            if (newIpAddress != null && !newIpAddress.isEmpty()) { // Check if the input is not empty
+                UDPServer.networkAddress = newIpAddress;
                 JOptionPane.showMessageDialog(null, "IP Address changed to: " + newIpAddress, "IP/Network Status", JOptionPane.INFORMATION_MESSAGE);
             } else {
                 JOptionPane.showMessageDialog(null, "IP Address cannot be empty.", "Input Error", JOptionPane.ERROR_MESSAGE);
@@ -70,33 +87,21 @@ public class Application extends JFrame { // JFrame lets us create windows
             }
         });
 
+        JMenuItem enableTestingMode = new JMenuItem("Enable Testing Mode");
+        enableTestingMode.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            JOptionPane.showMessageDialog(null, "Testing mode enabled.", "Testing Mode", JOptionPane.INFORMATION_MESSAGE);
+            Game.isTestingMode = true;
+        }});
+
         gameMenu.add(startGameItem);
         settingsMenu.add(changeIPNetwork);
+        settingsMenu.add(enableTestingMode);
         menuBar.add(gameMenu);
         menuBar.add(settingsMenu);
         this.setJMenuBar(menuBar);
-    }
-
-    private void startUDPServer() {
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder("xterm", "-hold", "-e", 
-                "java", "-cp", "../target/classes", "edu.uark.team10.UDPServer");
-            processBuilder.start();
-            System.out.println("UDP Server started.");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-    
-    private void startUDPClient() {
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder("xterm", "-hold", "-e", 
-                "java", "-cp", "../target/classes", "edu.uark.team10.UDPClient");
-            processBuilder.start();
-            System.out.println("UDP Client started.");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        
     }
 
     // Changes the screen to the splash screen
@@ -115,13 +120,29 @@ public class Application extends JFrame { // JFrame lets us create windows
         splashLabel.setIcon(logoImage); // Set the width and height to match the image
         splashPanel.add(splashLabel);
 
+        // A Future that completes itself after 3 seconds
+        // OR completes when the splash screen is clicked
+        CompletableFuture<Void> splashScreenFuture = new CompletableFuture<Void>().completeOnTimeout(null, 3L, TimeUnit.SECONDS);
+        splashScreenFuture.whenComplete((none, exception) -> {
+            if (exception != null)
+            {
+                exception.printStackTrace();
+            }
+
+            // Show player entry screen
+            playerEntryScreen();
+
+        });
+
         // Add a listener to the panel
         splashPanel.addMouseListener(new MouseListener() {
 
             @Override
-            public void mouseClicked(MouseEvent e) // Changes to the player entry screen when the screen is clicked
+            public void mouseClicked(MouseEvent e)
             {
-                playerEntryScreen();
+                // Changes to the player entry screen when the screen is clicked
+                // if the future is not already completed
+                splashScreenFuture.complete(null);
             }
 
             // Unused abstract methods
@@ -151,10 +172,13 @@ public class Application extends JFrame { // JFrame lets us create windows
         this.getContentPane().removeAll();
         this.revalidate();
         this.repaint();
+
+        this.game = new Game();
+        this.server = new UDPServer(game);
         
         // Create the red team table
-        JTable tableRedTeam = new JTable(new PlayerEntryTableModel()); // Include the custom table model
-        tableRedTeam.setModel(new PlayerEntryTableModel());
+        PlayerEntryTableModel tableModelRedTeam = new PlayerEntryTableModel(this.game, this.server);
+        JTable tableRedTeam = new JTable(tableModelRedTeam); // Include the custom table model
         tableRedTeam.setFillsViewportHeight(true);
         tableRedTeam.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         tableRedTeam.setRowSelectionAllowed(false);
@@ -162,8 +186,8 @@ public class Application extends JFrame { // JFrame lets us create windows
         tableRedTeam.setBackground(new Color(122, 0, 0));
 
         // Create the green team table
-        JTable tableGreenTeam = new JTable(new PlayerEntryTableModel()); // Include the custom table model
-        tableGreenTeam.setModel(new PlayerEntryTableModel());
+        PlayerEntryTableModel tableModelGreenTeam = new PlayerEntryTableModel(this.game, this.server);
+        JTable tableGreenTeam = new JTable(tableModelGreenTeam); // Include the custom table model
         tableGreenTeam.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         tableGreenTeam.setFillsViewportHeight(true);
         tableGreenTeam.setRowSelectionAllowed(false);
@@ -178,6 +202,7 @@ public class Application extends JFrame { // JFrame lets us create windows
         columnModelRedTeam.getColumn(0).setPreferredWidth(20);
         columnModelRedTeam.getColumn(1).setPreferredWidth(100);
         columnModelRedTeam.getColumn(2).setPreferredWidth(200);
+        columnModelRedTeam.removeColumn(columnModelRedTeam.getColumn(3));
         
         columnModelRedTeam.getColumn(0).setCellRenderer(cellRenderer);
         columnModelRedTeam.getColumn(1).setCellRenderer(cellRenderer);
@@ -189,6 +214,7 @@ public class Application extends JFrame { // JFrame lets us create windows
         columnModelGreenTeam.getColumn(0).setPreferredWidth(20);
         columnModelGreenTeam.getColumn(1).setPreferredWidth(100);
         columnModelGreenTeam.getColumn(2).setPreferredWidth(200);
+        columnModelGreenTeam.removeColumn(columnModelGreenTeam.getColumn(3));
 
         columnModelGreenTeam.getColumn(0).setCellRenderer(cellRenderer);
         columnModelGreenTeam.getColumn(1).setCellRenderer(cellRenderer);
@@ -197,54 +223,16 @@ public class Application extends JFrame { // JFrame lets us create windows
 
         // Add the table to the pane
         JScrollPane scrollPanelRedTeam = new JScrollPane(tableRedTeam);
-        //scrollPanelRedTeam.setSize(tableRedTeam.getWidth(), tableRedTeam.getHeight());
-
         JScrollPane scrollPanelGreenTeam = new JScrollPane(tableGreenTeam);
-        //scrollPanelGreenTeam.setSize(tableGreenTeam.getWidth(), tableGreenTeam.getHeight());
-
         // Add the panes to a panel
         JPanel tablePanel = new JPanel();
         tablePanel.add(scrollPanelRedTeam, BorderLayout.WEST);
         tablePanel.add(scrollPanelGreenTeam, BorderLayout.EAST);
 
-        /*
-        // Create panel for player entry
-        JPanel formPanel = new JPanel();
-        formPanel.setLayout(new BorderLayout(10, 10));
-
-        JLabel nameLabel = new JLabel("Enter Player Name:");
-        JTextField nameField = new JTextField(1);
-
-        formPanel.add(nameLabel, BorderLayout.NORTH);
-        formPanel.add(nameField, BorderLayout.CENTER);
-
-        // Add Player Button
-        JButton addPlayerButton = new JButton("Add Player");
-
-        addPlayerButton.addActionListener(e -> {
-            String playerName = nameField.getText().trim();
-            int machineId = new Random().nextInt(256) + 1; // TODO get machine id from user
-
-            if (playerName.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Please enter a player name.", "Input Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            // Add player to database
-            DB db = DB.get();
-            db.addPlayer(machineId, playerName);
-
-            // Simulate player entry
-            System.out.println("Player Added: " + playerName);
-            System.out.println("Machine ID: " + machineId);
-            splashScreen();
-        });
-        */
+        setupMenuBar(tableModelRedTeam, tableModelGreenTeam);
 
         // Layout adjustments
         this.setLayout(new BorderLayout());
-        //this.add(formPanel, BorderLayout.CENTER);
-        //this.add(addPlayerButton, BorderLayout.SOUTH);
         this.add(tablePanel, BorderLayout.CENTER);
 
         this.validate();
