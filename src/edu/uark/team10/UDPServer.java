@@ -24,7 +24,8 @@ public class UDPServer extends Thread {
         DatagramSocket receiveSocket = null;
 
         try {
-            receiveSocket = new DatagramSocket(listenPort, InetAddress.getByName(UDPServer.networkAddress));
+            receiveSocket = new DatagramSocket();
+            receiveSocket.bind(InetSocketAddress.createUnresolved(UDPServer.networkAddress, UDPServer.listenPort));
             System.out.println("UDP Server is listening on port " + UDPServer.listenPort);
 
             byte[] receiveBuffer = new byte[1024];
