@@ -45,7 +45,7 @@ public class Game {
         this.server = server;
         this.isGameStart = true;
 
-        this.server.run();
+        this.server.start();
 
         // TODO countdown timer
         this.server.sendMessage("202");
