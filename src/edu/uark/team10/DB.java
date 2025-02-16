@@ -41,8 +41,10 @@ public class DB {
             {
                 // Create table
                 String query = "CREATE TABLE players (id INT, codename VARCHAR(30));";
-                query(query);
+                query(query).close();
             }
+
+            resultSet.close();
 
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
@@ -74,7 +76,7 @@ public class DB {
         return null;
     }
 
-    // Prints the entire table (for dev purposes)
+    // Prints the entire table (for testing purposes)
     private static void printTable()
     {
         String query = "SELECT * FROM players;";
@@ -103,44 +105,51 @@ public class DB {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
         
     }
 
-    private void clearPlayers()
+    public void addEntry(int id, String codename)
     {
-        String query = "DELETE FROM players *";
-        query(query);
-        printTable();
-    }
-
-
-    public void addPlayer(int machineId, String playername)
-    {
-        if (playername.equals("clear"))
+        String query = "";
+        String dbCodename = getCodename(id);
+        if (dbCodename == null)
         {
-            clearPlayers();
+            query = "INSERT INTO players (id, codename) VALUES (" + id + ", '" + codename + "');";
+        } else if (dbCodename.equals(codename))
+        {
+            System.out.println("id:codename pair exists already: " + id + ":" + codename);
+            printTable();
             return;
+        } else
+        {
+            query = "UPDATE players SET codename = '" + codename + "' WHERE id = " + id + ";";
         }
 
-        removePlayer(machineId);
-
-        String query = "INSERT INTO players VALUES (" + machineId + ", '" + playername + "');";
         query(query);
         printTable();
     }
 
-    public String getPlayername(int machineId)
+    public String getCodename(int id)
     {
-        String queryGet = "SELECT codename FROM players WHERE id = " + machineId + ";";
-        ResultSet result = query(queryGet);
+        String codename = null;
+        try {
+            String query = "SELECT codename FROM players WHERE id = " + id + ";";
+            ResultSet result = query(query);
 
-        return result.toString();
+            if (!result.next()) return codename; // True if id not found
+
+            codename = result.getString(1);
+            result.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return codename;
     }
 
-    public HashMap<Integer, String> getAllPlayers()
+    public HashMap<Integer, String> getAllEntries()
     {
-        HashMap<Integer, String> players = new HashMap<>();
+        HashMap<Integer, String> entries = new HashMap<>();
 
         String query = "SELECT * FROM players;";
         ResultSet result = query(query);
@@ -148,22 +157,22 @@ public class DB {
         try {
             while (result.next())
             {
-                int machineId = 0;
-                String playername = "";
+                int id = 0;
+                String codename = "";
 
                 for (int i = 1; i <= 2; i++)
                 {
                     if (i == 1)
                     {
-                        machineId = result.getInt(i);
+                        id = result.getInt(i);
                     } else
                     {
-                        playername = result.getString(i);
+                        codename = result.getString(i);
                     }
                     
                 }
 
-                players.put(machineId, playername);
+                entries.put(id, codename);
             }
 
             result.close();
@@ -171,15 +180,17 @@ public class DB {
             e.printStackTrace();
         }
 
-        return players;
+        return entries;
     }
 
-    public void removePlayer(int machineId)
+    /*
+    public void removeEntry(int id)
     {
-        String query = "DELETE FROM players WHERE id = " + machineId + ";";
+        String query = "DELETE FROM players WHERE id = " + id + ";";
         query(query);
         printTable();
     }
+    */
 
     public void shutdown()
     {
