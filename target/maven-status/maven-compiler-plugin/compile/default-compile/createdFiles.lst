@@ -7,5 +7,6 @@ edu\uark\team10\Application.class
 edu\uark\team10\Main.class
 edu\uark\team10\Application$2.class
 edu\uark\team10\UDPServer.class
+edu\uark\team10\Application$5.class
 edu\uark\team10\PlayerEntryTableCellRenderer.class
 edu\uark\team10\Game.class
