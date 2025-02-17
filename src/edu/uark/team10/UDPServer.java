@@ -4,6 +4,10 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
 
 public class UDPServer extends Thread {
 
@@ -110,29 +114,7 @@ public class UDPServer extends Thread {
 
     }
 
-    public void sendMessage(String message)
-    {
-        try {
-            InetAddress address = InetAddress.getByName(UDPServer.networkAddress);
-            // Send data to client
-            byte[] sendData = message.getBytes();
-            DatagramSocket sendSocket = new DatagramSocket();
-            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length);
-
-            sendSocket.connect(address, UDPServer.sendPort);
-            sendSocket.send(sendPacket);
-            sendSocket.disconnect();
-            sendSocket.close();
-
-            System.out.println("Sent data '" + message + "' through port " + UDPServer.sendPort);
-
-        } catch (Exception e)
-        {
-            e.printStackTrace();
-        }
-
-    }
-
+    // Send a message to the client using the network address supplied
     public void sendMessage(String message, InetAddress address)
     {
         try {
@@ -151,6 +133,31 @@ public class UDPServer extends Thread {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+    }
+
+    // Send a message to the client using the network address in this class
+    public void sendMessage(String message)
+    {
+        try {
+            this.sendMessage(message, InetAddress.getByName(UDPServer.networkAddress));
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Send a message to the client after the given timeout (useful for delayed sending)
+    public void sendMessage(String message, long timeout, TimeUnit unit)
+    {
+        new CompletableFuture<Void>().whenComplete((none, exception) -> {
+            if (exception != null)
+            {
+                exception.printStackTrace();
+            }
+
+            sendMessage(message);
+
+        }).completeOnTimeout(null, timeout, unit);
 
     }
 

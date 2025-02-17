@@ -45,10 +45,10 @@ public class Game {
         this.server = server;
         this.isGameStart = true;
 
+        // Start the server
         this.server.start();
 
         // TODO countdown timer
-        this.server.sendMessage("202");
 
         if (isTestingMode)
         {
@@ -56,7 +56,11 @@ public class Game {
             this.gameLength = 30L;
         }
 
-        CompletableFuture<Void> gameTimerFuture = new CompletableFuture<Void>().completeOnTimeout(null, Game.gameLength, TimeUnit.SECONDS);
+        // Start the game after startCountdown seconds
+        this.server.sendMessage("202", Game.startCountdown, TimeUnit.SECONDS);
+
+        // End the game after gameLength + startCountdown seconds
+        CompletableFuture<Void> gameTimerFuture = new CompletableFuture<Void>().completeOnTimeout(null, Game.gameLength + Game.startCountdown, TimeUnit.SECONDS);
         gameTimerFuture.whenComplete((none, exception) -> {
             if (exception != null)
             {
