@@ -8,6 +8,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
 
+/**
+ * A class that interfaces with the PostgreSQL server.
+ * Use the static get() method to get an instance instead of
+ * calling new.
+ */
 public class DB {
 
     // Database credentials
@@ -19,8 +24,16 @@ public class DB {
     private static DB db = DB.get();
     private static Connection connection;
 
+    /**
+     * Get the database instance. Creates a connection to the database
+     * if it isn't already connected. Creates the player table if
+     * it isn't already created.
+     * 
+     * @return The databse instance
+     */
     public static DB get()
     {
+        // Return the instance if it is created already
         if (DB.db != null) return DB.db;
 
         DB db = new DB();
@@ -46,6 +59,9 @@ public class DB {
 
             resultSet.close();
 
+            // Set DB instance if all goes well
+            DB.db = db;
+
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }  catch (SQLException e) {
@@ -53,11 +69,17 @@ public class DB {
             e.printStackTrace();
         }
 
-        DB.db = db;
-
         return db;
     }
 
+    /**
+     * Query the database and get the result set.
+     * Does not check for valid queries. Does not
+     * close the result set.
+     * 
+     * @param query
+     * @return A nullable ResultSet of the query
+     */
     private static ResultSet query(String query)
     {
         try {
@@ -66,17 +88,18 @@ public class DB {
             // Query the database
             Statement statement = DB.connection.createStatement();
             statement.execute(query);
-            //statement.close();
 
             return statement.getResultSet();
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        return null;
+        return null; // Error
     }
 
-    // Prints the entire table (for testing purposes)
+    /**
+     * Prints the entire table for testing purposes
+     */
     private static void printTable()
     {
         String query = "SELECT * FROM players;";
@@ -84,21 +107,21 @@ public class DB {
 
         System.out.println("Printing players table:");
         try {
-            while (result.next())
+            while (result.next()) // While there is another row
             {
                 for (int i = 1; i <= 2; i++)
                 {
-                    if (i == 1)
+                    if (i == 1) // Player ID
                     {
                         System.out.print(result.getInt(i) + " ");
-                    } else
+                    } else if (i == 2) // Codename
                     {
                         System.out.print(result.getString(i) + " ");
                     }
                     
                 }
 
-                System.out.println("");
+                System.out.println(""); // Newline
             }
 
             result.close();
@@ -108,19 +131,27 @@ public class DB {
         
     }
 
+    /**
+     * Add a row to the database. Updates the row if player ID
+     * is present, otherwise inserts.
+     * 
+     * @param id
+     * @param codename
+     */
     public void addEntry(int id, String codename)
     {
         String query = "";
-        String dbCodename = getCodename(id);
-        if (dbCodename == null)
+
+        String dbCodename = getCodename(id); // Check if the player ID exists
+        if (dbCodename == null) // ID does not exist: insert
         {
             query = "INSERT INTO players (id, codename) VALUES (" + id + ", '" + codename + "');";
-        } else if (dbCodename.equals(codename))
+        } else if (dbCodename.equals(codename)) // ID exists, codename is the same, do nothing
         {
             System.out.println("id:codename pair exists already: " + id + ":" + codename);
             printTable();
-            return;
-        } else
+            return; // exit
+        } else // ID exists: update
         {
             query = "UPDATE players SET codename = '" + codename + "' WHERE id = " + id + ";";
         }
@@ -129,6 +160,12 @@ public class DB {
         printTable();
     }
 
+    /**
+     * Get the codename of the player ID if it exists.
+     * 
+     * @param id
+     * @return The codename or null
+     */
     public String getCodename(int id)
     {
         String codename = null;
@@ -147,6 +184,11 @@ public class DB {
         return codename;
     }
 
+    /**
+     * Get the table as a hashmap.
+     * 
+     * @return
+     */
     public HashMap<Integer, String> getAllEntries()
     {
         HashMap<Integer, String> entries = new HashMap<>();
@@ -155,24 +197,24 @@ public class DB {
         ResultSet result = query(query);
 
         try {
-            while (result.next())
+            while (result.next()) // While there is another row
             {
                 int id = 0;
                 String codename = "";
 
                 for (int i = 1; i <= 2; i++)
                 {
-                    if (i == 1)
+                    if (i == 1) // Player ID
                     {
                         id = result.getInt(i);
-                    } else
+                    } else // Codename
                     {
                         codename = result.getString(i);
                     }
                     
                 }
 
-                entries.put(id, codename);
+                entries.put(id, codename); // Add row to hashmap
             }
 
             result.close();
@@ -192,6 +234,7 @@ public class DB {
     }
     */
 
+    /*
     public void shutdown()
     {
         try {
@@ -201,5 +244,6 @@ public class DB {
             e.printStackTrace();
         }
     }
+    */
 
 }

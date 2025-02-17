@@ -9,16 +9,21 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+/**
+ * Represents a lazer tag game. Holds member variables for
+ * mapping equipment ID to player ID, team number, score, and codename.
+ * Also has methods for getting these values.
+ */
 public class Game {
 
+    // Static variables for convenience
     public static final int BASE_POINTS = 100;
     public static final int TAG_POINTS = 10;
-
     public static final int RED_TEAM_NUMBER = 53;
     public static final int GREEN_TEAM_NUMBER = 43;
 
-    private static long startCountdown = 30L;
-    private static long gameLength = 360L; // 6 minutes
+    public static long START_COUNTDOWN = 30L;
+    public static long GAME_LENGTH = 360L; // 6 minutes
 
     public static boolean isTestingMode = false;
 
@@ -30,7 +35,7 @@ public class Game {
     private HashMap<Integer, Integer> scores = new HashMap<>();
     // Maps equipment ID to codename
     private HashMap<Integer, String> playerCodenames = new HashMap<>();
-
+    // A list of equipment ID who have scored a base
     private ArrayList<Integer> playersWhoScoredBase = new ArrayList<>();
 
     private boolean isGameStart = false;
@@ -38,52 +43,69 @@ public class Game {
 
     private UDPServer server = null;
 
+    /**
+     * Start the game. Also starts the server.
+     * This method can only be called once per game instance.
+     * 
+     * @param server
+     */
     public void start(UDPServer server)
     {
-        if (isGameStart) return;
+        if (isGameStart) return; // Only allow this method to be called once
 
         this.server = server;
         this.isGameStart = true;
 
         // Start the server
-        this.server.start();
+        this.server.start(); // Server extends Thread. Threads can only be started once
 
-        // TODO countdown timer
-
+        // Decrease game length if testing mode
         if (isTestingMode)
         {
-            this.startCountdown = 5L;
-            this.gameLength = 30L;
+            Game.START_COUNTDOWN = 5L;
+            Game.GAME_LENGTH = 30L;
         }
 
-        // Start the game after startCountdown seconds
-        this.server.sendMessage("202", Game.startCountdown, TimeUnit.SECONDS);
+        // Start the game after startCountdown seconds. This acts like the countdown timer
+        this.server.sendMessage("202", Game.START_COUNTDOWN, TimeUnit.SECONDS);
 
         // End the game after gameLength + startCountdown seconds
-        CompletableFuture<Void> gameTimerFuture = new CompletableFuture<Void>().completeOnTimeout(null, Game.gameLength + Game.startCountdown, TimeUnit.SECONDS);
+        CompletableFuture<Void> gameTimerFuture = new CompletableFuture<Void>().completeOnTimeout(null, Game.GAME_LENGTH + Game.START_COUNTDOWN, TimeUnit.SECONDS);
         gameTimerFuture.whenComplete((none, exception) -> {
             if (exception != null)
             {
                 exception.printStackTrace();
             }
 
-            end();
+            end(); // End the game
         });
 
     }
 
+    /**
+     * Ends the game. Can only be called once per game instance.
+     * Can only be called if the game has started.
+     */
     public void end()
     {
-        if (isGameEnd) return;
+        if (!this.isGameStart) return; // Cannot be called until the game is started
+        if (this.isGameEnd) return; // Cannot be called more than once
 
         this.isGameEnd = true;
 
-        this.server.sendMessage("221");
+        // End game code
+        this.server.sendMessage("221"); // Send 3 times according to requirements
         this.server.sendMessage("221");
         this.server.sendMessage("221");
 
     }
 
+    /**
+     * Add a player to the game. Get a playerdata object array
+     * from calling getRowData() on a PlayerEntryTableModel.
+     * 
+     * @param playerdata An object array with non-null values in this order: [(int) equipment ID, (int) player ID, (int) team number, (string) codename]
+     */
     public void addPlayer(Object[] playerdata)
     {
         int equipmentId = Integer.valueOf(String.valueOf(playerdata[0]));
@@ -98,27 +120,35 @@ public class Game {
 
     }
 
-    // Checks the validity of equipmentId by
-    // checking if it is a key of the players map
-    // or if it is a team base number.
-    // Throws an exception if invalid
+    /**
+     * Checks the validity of equipmentId by
+     * checking if it is a key of the players map
+     * or if it is a team base number.
+     * Throws an exception if invalid.
+     * 
+     * @param equipmentId Equipment ID or team number
+     */
     private void checkValidity(int equipmentId)
     {
         if (equipmentId == Game.RED_TEAM_NUMBER || equipmentId == Game.GREEN_TEAM_NUMBER) return;
 
         try {
-            if (this.players.get(equipmentId) == null)
-            {
+            if (this.players.get(equipmentId) == null) {
                 throw new Exception("Invalid equipment ID: This equipment ID (" + equipmentId + ") is not registered.");
             }
-        } catch (Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
     }
 
-    private ArrayList<Integer> getPlayersOnTeam(int teamNumber)
+    /**
+     * Get a list of all the equipment IDs on a team.
+     * 
+     * @param teamNumber 53 (red) or 43 (green)
+     * @return A list of equipment IDs on the team
+     */
+    private ArrayList<Integer> getEquipmentIdsOnTeam(int teamNumber)
     {
         this.checkValidity(teamNumber);
 
@@ -134,18 +164,27 @@ public class Game {
 
     }
 
-    // Get the team number of the player associated with equipmentId
-    // 53 is red team, 43 is green team
+    /**
+     * Get the team number of the equipmentId. If the equipment ID
+     * is a team number, then itself is returned.
+     * 
+     * @param equipmentId
+     * @return 53 (red) or 43 (green)
+     */
     public Integer getTeamFromEquipmentId(int equipmentId)
     {
         this.checkValidity(equipmentId);
 
-        // Returns the correct player team, or equipmentId if the get is null.
-        // If the get is null, it means the equipment ID is a team base
+        // Team number of equipment ID. If the get is null, return the equipment ID (it is a base)
         return Optional.ofNullable(this.playerTeams.get(equipmentId)).orElse(equipmentId);
     }
 
-    // Get player ID rom the equipment ID
+    /**
+     * Get player ID rom the equipment ID
+     * 
+     * @param equipmentId
+     * @return Player ID
+     */
     public Integer getPlayerIdFromEquipmentId(int equipmentId)
     {
         this.checkValidity(equipmentId);
@@ -153,7 +192,12 @@ public class Game {
         return this.players.get(equipmentId); // May be null
     }
 
-    // Get the score of the player associated with equipmentId
+    /**
+     * Get the score of the player using their equipmentId
+     * 
+     * @param equipmentId
+     * @return This player's score
+     */
     public int getPlayerScore(int equipmentId)
     {
         this.checkValidity(equipmentId);
@@ -161,31 +205,48 @@ public class Game {
         return this.scores.get(equipmentId);
     }
 
-    // Get the total score of a team
+    /**
+     * Get the total score of a team
+     * 
+     * @param teamNumber
+     * @return Total score of this team
+     */
     public int getTeamScore(int teamNumber)
     {
         this.checkValidity(teamNumber);
         
-        return this.getPlayersOnTeam(teamNumber).stream()
+        return this.getEquipmentIdsOnTeam(teamNumber).stream()
             .mapToInt(this::getPlayerScore) // Convert the array of equipment IDs to an IntStream of player scores
             .sum(); // Sum the player scores
     }
 
-    // Get the codename of the player associated with equipmentId.
-    // Adds stylized "B" to the beginning of their name if they scored a base.
+    /**
+     * Get the codename of the player associated with equipmentId.
+     * Adds stylized "B" to the beginning of their name if they scored a base.
+     * 
+     * @param equipmentId
+     * @return The player's codename
+     */
     public String getCodename(int equipmentId)
     {
         this.checkValidity(equipmentId);
+
         String codename = this.playerCodenames.get(equipmentId);
 
         if (hasPlayerScoredBase(equipmentId))
         {
-            codename = "[B] ".concat(codename);
+            codename = "[B]".concat(codename);
         }
 
         return codename;
     }
 
+    /**
+     * Checks if this equipment ID has scored a base.
+     * 
+     * @param equipmentId
+     * @return True if player scored a base
+     */
     public boolean hasPlayerScoredBase(int equipmentId)
     {
         this.checkValidity(equipmentId);
@@ -193,7 +254,13 @@ public class Game {
         return this.playersWhoScoredBase.contains(equipmentId);
     }
 
-    // Add points to the score of the player associated with equipmentId
+    /**
+     * Add points to the score of the player associated with equipmentId.
+     * 
+     * @param points Points to be added
+     * @param equipmentId Player to add points to
+     * @return The new score of this player
+     */
     public int addPoints(int points, int equipmentId)
     {
         this.checkValidity(equipmentId);
@@ -203,6 +270,11 @@ public class Game {
         return score;
     }
 
+    /**
+     * Indicate that this player scored a base.
+     * 
+     * @param equipmentId The equipment ID of the player
+     */
     public void playerScoredBase(int equipmentId)
     {
         this.checkValidity(equipmentId);
@@ -210,13 +282,18 @@ public class Game {
         this.playersWhoScoredBase.add(equipmentId);
     }
 
-    // Returns an ordered map of codename to score.
-    // Smallest index is smallest score, biggest index is biggest score
+    /**
+     * Returns an ordered map of codename to score.
+     * Smallest index is smallest score, biggest index is biggest score
+     * 
+     * @param teamNumber
+     * @return A map of codename to score in ascending order
+     */
     public Map<String, Integer> getTeamPlayerScoresOrdered(int teamNumber)
     {
         this.checkValidity(teamNumber);
         
-        return this.getPlayersOnTeam(teamNumber).stream()
+        return this.getEquipmentIdsOnTeam(teamNumber).stream()
             .sorted(Comparator.comparingInt(this::getPlayerScore)) // Sort players by score
             .collect(Collectors.toMap(this::getCodename, this::getPlayerScore)); // Convert the array of equipment IDs to a map of codenames and scores
     }
