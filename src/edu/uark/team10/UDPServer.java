@@ -149,7 +149,8 @@ public class UDPServer extends Thread {
     // Send a message to the client after the given timeout (useful for delayed sending)
     public void sendMessage(String message, long timeout, TimeUnit unit)
     {
-        new CompletableFuture<Void>().whenComplete((none, exception) -> {
+        CompletableFuture<Void> futureMessage = new CompletableFuture<Void>().completeOnTimeout(null, timeout, unit);
+        futureMessage.whenComplete((none, exception) -> {
             if (exception != null)
             {
                 exception.printStackTrace();
@@ -157,7 +158,7 @@ public class UDPServer extends Thread {
 
             sendMessage(message);
 
-        }).completeOnTimeout(null, timeout, unit);
+        });
 
     }
 
