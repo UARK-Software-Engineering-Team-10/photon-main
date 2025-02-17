@@ -3,11 +3,9 @@ package edu.uark.team10;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.CompletableFuture;
 
 public class UDPServer extends Thread {
 
@@ -31,9 +29,12 @@ public class UDPServer extends Thread {
             receiveSocket = new DatagramSocket(listenPort, InetAddress.getByName(UDPServer.networkAddress));
             System.out.println("UDP Server is listening on port " + UDPServer.listenPort);
 
-            byte[] receiveBuffer = new byte[1024];
+            byte[] receiveBuffer = null;
 
             while (true) {
+                // Clear buffer for next packet
+                receiveBuffer = new byte[1024];
+
                 // Receive packet
                 DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length, InetAddress.getByName(UDPServer.networkAddress), UDPServer.listenPort);
                 receiveSocket.receive(receivePacket);
@@ -89,8 +90,11 @@ public class UDPServer extends Thread {
                         {
                             this.game.addPoints(Game.BASE_POINTS, shooterEquipmentId);
                             this.game.playerScoredBase(shooterEquipmentId);
-                        } // No points removed for tagging your own base
 
+                        } // No points removed for tagging your own base
+                        // team number will be the message whether or not it's the opposite base
+                        message = targetTeamNumber.toString();
+                        
                     }
 
                     System.out.println(player1 + " Shot " + player2);
@@ -101,9 +105,6 @@ public class UDPServer extends Thread {
                 }
 
                 this.sendMessage(message, senderAddress);
-
-                // Clear buffer for next packet
-                receiveBuffer = new byte[1024];
             }
 
         } catch (Exception e) {

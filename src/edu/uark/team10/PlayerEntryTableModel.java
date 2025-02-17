@@ -1,7 +1,6 @@
 package edu.uark.team10;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 
 import javax.swing.JOptionPane;
@@ -14,7 +13,8 @@ public class PlayerEntryTableModel extends AbstractTableModel
 {
     // Store all IDs in the table
     // Check for duplicates using this
-    private static ArrayList<Object> ids = new ArrayList<>();
+    private static ArrayList<Object> playerIds = new ArrayList<>();
+    private static ArrayList<Object> equipmentIds = new ArrayList<>();
 
     // Basic table data
     private final int maxPlayers = 15;
@@ -34,6 +34,7 @@ public class PlayerEntryTableModel extends AbstractTableModel
         for (int row = 0; row < rowData.length; row++)
         {
             rowData[row][0] = row + 1;
+            fireTableCellUpdated(row, 0);
         }
 
     }
@@ -74,22 +75,31 @@ public class PlayerEntryTableModel extends AbstractTableModel
         // Trim inputs
         value = String.valueOf(value).trim();
 
-        // Set value to null if the new value is blank
+        // Delete the whole row if any value is deleted
         if (String.valueOf(value).isEmpty())
         {
             value = null;
 
             if (col == 1)
             {
-                ids.remove(oldValue);
-            }/* else if (col == 2)
-            {
-                codenames.remove(oldValue);
-            }*/
+                PlayerEntryTableModel.playerIds.remove(oldValue);
+            }
 
-            // Make the edit
-            rowData[row][col] = value;
-            fireTableCellUpdated(row, col);
+            Object equipmentId = this.getValueAt(row, 3);
+            if (equipmentId != null)
+            {
+                PlayerEntryTableModel.equipmentIds.remove(equipmentId);
+            }
+
+            // Clear the row
+            this.rowData[row][1] = null;
+            this.fireTableCellUpdated(row, 1);
+
+            this.rowData[row][2] = null;
+            this.fireTableCellUpdated(row, 2);
+
+            this.rowData[row][3] = null;
+            this.fireTableCellUpdated(row, 3);
 
             return;
         }
@@ -110,14 +120,14 @@ public class PlayerEntryTableModel extends AbstractTableModel
             }
 
             // Make sure there are no duplicate IDs
-            if (ids.contains(value))
+            if (PlayerEntryTableModel.playerIds.contains(value))
             {
                 System.out.println("Invalid ID: Input cannot be a duplicate.");
                 return; // Cancel the edit
             }
 
-            ids.remove(oldValue);
-            ids.add(value);
+            PlayerEntryTableModel.playerIds.remove(oldValue);
+            PlayerEntryTableModel.playerIds.add(value);
 
         } else if (col == 2) // Edited cell is codename
         {
@@ -135,7 +145,8 @@ public class PlayerEntryTableModel extends AbstractTableModel
 
             if (codename != null)
             {
-                rowData[row][2] = codename;
+                this.rowData[row][2] = codename;
+                this.fireTableCellUpdated(row, 2);
             }
             
         } else if (col == 2)
@@ -149,7 +160,7 @@ public class PlayerEntryTableModel extends AbstractTableModel
         if (id != null && codename != null)
         {
             // Add codename and ID to database
-            db.addEntry(id, codename);
+            this.db.addEntry(id, codename);
             System.out.println("Player added to database: (" + id + ", " + codename + ")");
 
             String equipmentId = null;
@@ -160,7 +171,25 @@ public class PlayerEntryTableModel extends AbstractTableModel
                 equipmentId = equipmentId.replaceAll("[^0-9]", ""); // Only allow numbers for equipment ID
 
                 try {
-                    rowData[row][3] = Integer.valueOf(equipmentId);
+                    Integer equipmentIdInteger = Integer.valueOf(equipmentId);
+                    if (PlayerEntryTableModel.equipmentIds.contains(equipmentIdInteger))
+                    {
+                        equipmentId = null;
+                        continue;
+                    }
+
+                    // Remove old equipment ID from duplicates list
+                    Object oldEquipmentId = this.getValueAt(row, 3);
+                    if (oldEquipmentId != null)
+                    {
+                        PlayerEntryTableModel.equipmentIds.remove(oldEquipmentId);
+                    }
+
+                    PlayerEntryTableModel.equipmentIds.add(equipmentIdInteger);
+
+                    this.rowData[row][3] = equipmentIdInteger;
+                    this.fireTableCellUpdated(row, 3);
+
                     JOptionPane.showMessageDialog(null, "Added player: " + codename, "Player Added", JOptionPane.PLAIN_MESSAGE);
                     this.server.sendMessage(equipmentId);
                 } catch (NumberFormatException e) {
@@ -173,8 +202,8 @@ public class PlayerEntryTableModel extends AbstractTableModel
         }
 
         // Make the edit
-        rowData[row][col] = value;
-        fireTableCellUpdated(row, col);
+        this.rowData[row][col] = value;
+        this.fireTableCellUpdated(row, col);
     }
 
     public ArrayList<Object[]> getRowData(int teamNumber)
@@ -202,6 +231,22 @@ public class PlayerEntryTableModel extends AbstractTableModel
         }
 
         return rowPlayerData;
+    }
+
+    public void clear()
+    {
+        for (int row = 0; row < this.getRowCount(); row++)
+        {
+            for (int col = 1; col < this.getColumnCount(); col++)
+            {
+                this.rowData[row][col] = null;
+                this.fireTableCellUpdated(row, col);
+            }
+
+        }
+        
+        PlayerEntryTableModel.playerIds.clear();
+        PlayerEntryTableModel.equipmentIds.clear();
     }
     
 }

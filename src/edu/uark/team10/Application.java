@@ -71,6 +71,17 @@ public class Application extends JFrame { // JFrame lets us create windows
             }
         });
 
+        JMenuItem clearEntriesItem = new JMenuItem("Clear Entries");
+        clearEntriesItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            JOptionPane.showMessageDialog(null, "Cleared player entries.", "Entries", JOptionPane.INFORMATION_MESSAGE);
+
+            tableModelRedTeam.clear();
+            tableModelGreenTeam.clear();
+
+        }});
+
         JMenuItem changeIPNetwork = new JMenuItem("Change IP/Network");
         changeIPNetwork.addActionListener(new ActionListener() {    // Request user input for IP/Network
             @Override
@@ -96,6 +107,7 @@ public class Application extends JFrame { // JFrame lets us create windows
         }});
 
         gameMenu.add(startGameItem);
+        gameMenu.add(clearEntriesItem);
         settingsMenu.add(changeIPNetwork);
         settingsMenu.add(enableTestingMode);
         menuBar.add(gameMenu);
@@ -179,6 +191,8 @@ public class Application extends JFrame { // JFrame lets us create windows
         // Create the red team table
         PlayerEntryTableModel tableModelRedTeam = new PlayerEntryTableModel(this.game, this.server);
         JTable tableRedTeam = new JTable(tableModelRedTeam); // Include the custom table model
+        tableRedTeam.getTableHeader().setReorderingAllowed(false);
+        tableRedTeam.getTableHeader().setResizingAllowed(false);
         tableRedTeam.setFillsViewportHeight(true);
         tableRedTeam.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         tableRedTeam.setRowSelectionAllowed(false);
@@ -188,6 +202,8 @@ public class Application extends JFrame { // JFrame lets us create windows
         // Create the green team table
         PlayerEntryTableModel tableModelGreenTeam = new PlayerEntryTableModel(this.game, this.server);
         JTable tableGreenTeam = new JTable(tableModelGreenTeam); // Include the custom table model
+        tableGreenTeam.getTableHeader().setReorderingAllowed(false);
+        tableGreenTeam.getTableHeader().setResizingAllowed(false);
         tableGreenTeam.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         tableGreenTeam.setFillsViewportHeight(true);
         tableGreenTeam.setRowSelectionAllowed(false);
