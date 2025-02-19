@@ -135,7 +135,17 @@ public class PlayerEntryTableModel extends AbstractTableModel
         } else if (col == 2) // Codename
         {
             // Replaces any character that isn't a-0 or A-z or 0-9 or _ (only allows letters, numbers, and underscore)
-            value = String.valueOf(value).replaceAll("[^\\w]", "");
+            String valueStr = String.valueOf(value);
+            valueStr = valueStr.replaceAll("[^\\w]", "");
+
+            // Database codename field cannot be > 30 characters long
+            if (valueStr.length() > 30)
+            {
+                valueStr = valueStr.substring(0, 30);
+            }
+
+            value = valueStr;
+
         }
 
         // Get the player ID and codename if they exist

@@ -2,11 +2,18 @@ package edu.uark.team10;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.FontFormatException;
+import java.awt.GraphicsEnvironment;
+import java.awt.Image;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -21,7 +28,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.table.TableColumnModel;
+import javax.swing.UIManager;
 
 /**
  * Responsible for the user interface.
@@ -43,36 +50,74 @@ public class Application extends JFrame { // JFrame lets us create windows
         this.game = game;
         this.server = server;
 
-        // Get logo for splash screen
-        URL logoUrl = getClass().getClassLoader().getResource("edu/uark/team10/assets/logo.png"); // Resource is in the jar
-        ImageIcon logoImage = new ImageIcon(logoUrl);
+        // Calculate size of window to be ~35% the width of the screen while maintaining exactly 4:3 aspect ratio
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int windowWidth = (int) (Math.floor(screenSize.getWidth() * 0.35) - Math.floor(screenSize.getWidth() * 0.33) % 4); // 4 must divide width
+        int windowHeight = (int) (windowWidth * 0.75);
+        Dimension windowSize = new Dimension(windowWidth, windowHeight);
         
         // Configure the main window
         this.setTitle("Photon Laser Tag");
-        this.setSize(logoImage.getIconWidth(), logoImage.getIconHeight());
+        this.setSize(windowSize); // Resize here
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setResizable(false);
         this.setVisible(true);
+
+        try {
+            // Sets the "look and feel" of the program based on operating system
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        
+        try {
+            // Get font from jar and register it so we can use it later
+            InputStream fontStream = ClassLoader.getSystemClassLoader().getResourceAsStream("edu/uark/team10/assets/Conthrax-SemiBold.otf");
+            Font font = Font.createFont(Font.TRUETYPE_FONT, fontStream); // "Conthrax SemBd"
+            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+            ge.registerFont(font);
+            
+            /*
+            System.out.println("Available fonts:");
+
+            for (String fontname : ge.getAvailableFontFamilyNames())
+            {
+                System.out.println(fontname);
+            }
+
+            for (Font fontfont : ge.getAllFonts())
+            {
+                System.out.println(fontfont.getFontName());
+            }
+            */
+
+        } catch (FontFormatException | IOException e) {
+            e.printStackTrace();
+        }
 
         // Create the splash screen and add it to the screen
         splashScreen();
     }
 
     /**
-     * Creates a menu bar and adds it to this frame.
+     * Creates a menu bar
      * Includes options for starting the game, clearing player entries, changing
      * binding IP address, and test mode.
      * 
      * @param tableModelRedTeam
      * @param tableModelGreenTeam
+     * @return The created menu bar to be added to a frame
      */
-    private void setupMenuBar(PlayerEntryTableModel tableModelRedTeam, PlayerEntryTableModel tableModelGreenTeam) {
+    private JMenuBar getMenuBar(PlayerEntryTableModel tableModelRedTeam, PlayerEntryTableModel tableModelGreenTeam) {
         // Setup the menu bar for Start/settings
         JMenuBar menuBar = new JMenuBar(); // Menu bar container holds menus
         // Game menu holds options for starting game and clearing player entries
         JMenu gameMenu = new JMenu("Game");
+        gameMenu.setFont(new Font("Conthrax SemBd", Font.PLAIN, 11));
         // Settings menu holds options for changing binding ip address and enabling test mode
         JMenu settingsMenu = new JMenu("Settings");
+        settingsMenu.setFont(new Font("Conthrax SemBd", Font.PLAIN, 11));
         
         /*
          * Start game item:
@@ -100,6 +145,12 @@ public class Application extends JFrame { // JFrame lets us create windows
             }
         });
 
+        startGameItem.setFont(new Font("Conthrax SemBd", Font.PLAIN, 11));
+
+        // Start game button icon
+        ImageIcon startIcon = new ImageIcon(getClass().getClassLoader().getResource("edu/uark/team10/assets/icons/start.png"));
+        startGameItem.setIcon(startIcon);
+
         /*
          * Clear entries item:
          * Clears the red and green team tables. Sets all values in the table to null.
@@ -115,6 +166,12 @@ public class Application extends JFrame { // JFrame lets us create windows
             tableModelGreenTeam.clear();
 
         }});
+
+        clearEntriesItem.setFont(new Font("Conthrax SemBd", Font.PLAIN, 11));
+
+        // Clear entries button icon
+        ImageIcon clearIcon = new ImageIcon(getClass().getClassLoader().getResource("edu/uark/team10/assets/icons/clear.png"));
+        clearEntriesItem.setIcon(clearIcon);
 
         /*
          * Change IP network item:
@@ -136,6 +193,12 @@ public class Application extends JFrame { // JFrame lets us create windows
             }
         });
 
+        changeIPNetwork.setFont(new Font("Conthrax SemBd", Font.PLAIN, 11));
+
+        // Change network button icon
+        ImageIcon networkIcon = new ImageIcon(getClass().getClassLoader().getResource("edu/uark/team10/assets/icons/network.png"));
+        changeIPNetwork.setIcon(networkIcon);
+
         /*
          * Enable testing mode item:
          * Enables testing mode when selected. Shortens the start countdown and game length to a total of 35 seconds.
@@ -148,6 +211,12 @@ public class Application extends JFrame { // JFrame lets us create windows
             Game.isTestingMode = true; // Set static testing mode to true
         }});
 
+        enableTestingMode.setFont(new Font("Conthrax SemBd", Font.PLAIN, 11));
+
+        // Enable testing mode button icon
+        ImageIcon testingIcon = new ImageIcon(getClass().getClassLoader().getResource("edu/uark/team10/assets/icons/testing.png"));
+        enableTestingMode.setIcon(testingIcon);
+
         // Add items to the game menu
         gameMenu.add(startGameItem);
         gameMenu.add(clearEntriesItem);
@@ -157,8 +226,8 @@ public class Application extends JFrame { // JFrame lets us create windows
         // Add menus to the menu bar
         menuBar.add(gameMenu);
         menuBar.add(settingsMenu);
-        // Add menu to this frame
-        this.setJMenuBar(menuBar);
+        
+        return menuBar;
     }
 
     /**
@@ -180,6 +249,7 @@ public class Application extends JFrame { // JFrame lets us create windows
         // Load the splash image (logo)
         URL logoUrl = getClass().getClassLoader().getResource("edu/uark/team10/assets/logo.png");
         ImageIcon logoImage = new ImageIcon(logoUrl);
+        logoImage = new ImageIcon(logoImage.getImage().getScaledInstance(this.getWidth(), this.getHeight(), Image.SCALE_DEFAULT));
 
         // Add image to component
         final JLabel splashLabel = new JLabel();
@@ -245,16 +315,13 @@ public class Application extends JFrame { // JFrame lets us create windows
         this.revalidate();
         this.repaint();
         
-        
         // Create a new instance of the custom table model.
         // Pass in server so we can send the equipment ID on add player.
         PlayerEntryTableModel tableModelRedTeam = new PlayerEntryTableModel(this.server);
         // Create the red team table
         JTable tableRedTeam = new JTable(tableModelRedTeam); // Use the custom table model on the table
         // Configure table options
-        tableRedTeam.getTableHeader().setReorderingAllowed(false);
-        tableRedTeam.getTableHeader().setResizingAllowed(false);
-        tableRedTeam.setFillsViewportHeight(true);
+        tableRedTeam.setTableHeader(new PlayerEntryTableHeader(tableRedTeam.getColumnModel()));
         tableRedTeam.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         tableRedTeam.setRowSelectionAllowed(false);
         tableRedTeam.setColumnSelectionAllowed(false);
@@ -266,55 +333,44 @@ public class Application extends JFrame { // JFrame lets us create windows
         // Create the green team table
         JTable tableGreenTeam = new JTable(tableModelGreenTeam); // Use the custom table model on the table
         // Configure table options
-        tableGreenTeam.getTableHeader().setReorderingAllowed(false);
-        tableGreenTeam.getTableHeader().setResizingAllowed(false);
+        tableGreenTeam.setTableHeader(new PlayerEntryTableHeader(tableGreenTeam.getColumnModel()));
         tableGreenTeam.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        tableGreenTeam.setFillsViewportHeight(true);
         tableGreenTeam.setRowSelectionAllowed(false);
         tableGreenTeam.setColumnSelectionAllowed(false);
         tableGreenTeam.setBackground(new Color(0, 122, 0));
 
-        // Custom cell renderer for red and green team (shared)
-        PlayerEntryTableCellRenderer cellRenderer = new PlayerEntryTableCellRenderer();
-
-        // Configure column options for red team
-        TableColumnModel columnModelRedTeam = tableRedTeam.getColumnModel();
-        columnModelRedTeam.getColumn(0).setPreferredWidth(50);
-        columnModelRedTeam.getColumn(1).setPreferredWidth(100);
-        columnModelRedTeam.getColumn(2).setPreferredWidth(200);
-        columnModelRedTeam.removeColumn(columnModelRedTeam.getColumn(3)); // Hide column 3 (equipment IDs)
-        // Set cell renderer for red team
-        columnModelRedTeam.getColumn(0).setCellRenderer(cellRenderer);
-        columnModelRedTeam.getColumn(1).setCellRenderer(cellRenderer);
-        columnModelRedTeam.getColumn(2).setCellRenderer(cellRenderer);
-        columnModelRedTeam.setColumnMargin(4);
-
-        // Configure column options for green team
-        TableColumnModel columnModelGreenTeam = tableGreenTeam.getColumnModel();
-        columnModelGreenTeam.getColumn(0).setPreferredWidth(50);
-        columnModelGreenTeam.getColumn(1).setPreferredWidth(100);
-        columnModelGreenTeam.getColumn(2).setPreferredWidth(200);
-        columnModelGreenTeam.removeColumn(columnModelGreenTeam.getColumn(3)); // Hide column 3 (equipment IDs)
-        // Set cell renderer for green team
-        columnModelGreenTeam.getColumn(0).setCellRenderer(cellRenderer);
-        columnModelGreenTeam.getColumn(1).setCellRenderer(cellRenderer);
-        columnModelGreenTeam.getColumn(2).setCellRenderer(cellRenderer);
-        columnModelGreenTeam.setColumnMargin(4);
-
         // Add the tables to a scroll pane
-        JScrollPane scrollPaneRedTeam = new JScrollPane(tableRedTeam);
-        JScrollPane scrollPaneGreenTeam = new JScrollPane(tableGreenTeam);
+        JScrollPane scrollPaneRedTeam = new JScrollPane(tableRedTeam) {
+            @Override
+            public Dimension getPreferredSize() {
+                // Override the size of the scroll pane to fit the exact size of the table
+                return new Dimension(425 + tableRedTeam.getColumnModel().getColumnMargin() * 2,
+                                    tableRedTeam.getRowHeight() * tableRedTeam.getRowCount() + tableRedTeam.getRowMargin() * tableRedTeam.getRowCount() * 2);
+            }
+        };
+        JScrollPane scrollPaneGreenTeam = new JScrollPane(tableGreenTeam) {
+            @Override
+            public Dimension getPreferredSize() {
+                // Override the size of the scroll pane to fit the exact size of the table
+                return new Dimension(425 + tableGreenTeam.getColumnModel().getColumnMargin() * 2,
+                                    tableGreenTeam.getRowHeight() * tableGreenTeam.getRowCount() + tableGreenTeam.getRowMargin() * tableGreenTeam.getRowCount() * 2);
+            }
+        };
         // Add the scroll panes to a panel
         JPanel tablePanel = new JPanel();
         tablePanel.add(scrollPaneRedTeam, BorderLayout.WEST); // Red team table to the left
         tablePanel.add(scrollPaneGreenTeam, BorderLayout.EAST); // Green team table to the right
 
-        // Create and display the menu bar for game settings
-        setupMenuBar(tableModelRedTeam, tableModelGreenTeam);
+        tablePanel.setBackground(new Color(28, 0, 64));
+
+        // Create and add the menu bar for game settings
+        this.setJMenuBar(getMenuBar(tableModelRedTeam, tableModelGreenTeam));
 
         // Add the table panel to this frame
         this.setLayout(new BorderLayout());
-        this.add(tablePanel, BorderLayout.CENTER);
+        this.add(tablePanel, BorderLayout.NORTH);
+
+        this.getContentPane().setBackground(new Color(28, 0, 64));
 
         this.validate(); // Validate the components in this frame
     }
