@@ -30,6 +30,9 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.UIManager;
 
+import edu.uark.team10.table.PlayerEntryTableHeader;
+import edu.uark.team10.table.PlayerEntryTableModel;
+
 /**
  * Responsible for the user interface.
  */
@@ -54,7 +57,7 @@ public class Application extends JFrame { // JFrame lets us create windows
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         int windowWidth = (int) (Math.floor(screenSize.getWidth() * 0.35) - Math.floor(screenSize.getWidth() * 0.33) % 4); // 4 must divide width
         int windowHeight = (int) (windowWidth * 0.75);
-        Dimension windowSize = new Dimension(windowWidth, windowHeight);
+        Dimension windowSize = new Dimension(Math.max(windowWidth, 896), Math.max(windowHeight, 672)); // Set minimum window size to 896x672
         
         // Configure the main window
         this.setTitle("Photon Laser Tag");
@@ -181,16 +184,20 @@ public class Application extends JFrame { // JFrame lets us create windows
         changeIPNetwork.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {                                                                         // QUESTION_MESSAGE: Request user input for IP/Network
-            String newIpAddress = JOptionPane.showInputDialog(null, "Enter new IP Address:", "Change IP/Network", JOptionPane.QUESTION_MESSAGE);
-            newIpAddress = newIpAddress.replaceAll("[^0-9.]", ""); // Only allow numbers and periods for ip addresses
+                String newIpAddress = JOptionPane.showInputDialog(null, "Enter new IP Address:", "Change IP/Network: " + UDPServer.networkAddress, JOptionPane.QUESTION_MESSAGE);
 
-            if (newIpAddress != null && !newIpAddress.isEmpty()) { // Check if the input is not empty
-                UDPServer.networkAddress = newIpAddress; // Change the static network address
-                JOptionPane.showMessageDialog(null, "IP Address changed to: " + newIpAddress, "IP/Network Status", JOptionPane.INFORMATION_MESSAGE);
-            } else {
-                JOptionPane.showMessageDialog(null, "IP Address cannot be empty.", "Input Error", JOptionPane.ERROR_MESSAGE);
-            }
-            }
+                // May be null if user selects 'cancel'
+                if (newIpAddress == null) return;
+
+                newIpAddress = newIpAddress.replaceAll("[^0-9.]", ""); // Only allow numbers and periods for ip addresses
+
+                if (newIpAddress != null && !newIpAddress.isEmpty()) { // Check if the input is not empty
+                    UDPServer.networkAddress = newIpAddress; // Change the static network address
+                    JOptionPane.showMessageDialog(null, "IP Address changed to: " + newIpAddress, "IP/Network Status", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(null, "IP Address cannot be empty.", "Input Error", JOptionPane.ERROR_MESSAGE);
+                }
+                }
         });
 
         changeIPNetwork.setFont(new Font("Conthrax SemBd", Font.PLAIN, 11));

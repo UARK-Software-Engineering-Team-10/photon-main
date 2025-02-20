@@ -1,10 +1,13 @@
-package edu.uark.team10;
+package edu.uark.team10.table;
 
 import java.util.ArrayList;
 import java.util.Objects;
 
 import javax.swing.JOptionPane;
 import javax.swing.table.AbstractTableModel;
+
+import edu.uark.team10.DB;
+import edu.uark.team10.UDPServer;
 
 /**
  * A custom table model used by the team tables in the player entry screen.
@@ -80,8 +83,6 @@ public class PlayerEntryTableModel extends AbstractTableModel
         // Delete the whole row if any value is deleted
         if (String.valueOf(value).isEmpty())
         {
-            value = null;
-
             if (col == 1) // Player ID
             {
                 PlayerEntryTableModel.playerIds.remove(oldValue); // Remove from duplicate checking list
@@ -114,7 +115,8 @@ public class PlayerEntryTableModel extends AbstractTableModel
             // Make sure it's an integer
             try {
                 // Will throw an exception if it's not an integer
-                Integer.valueOf(String.valueOf(value));
+                int playerId = Integer.valueOf(String.valueOf(value));
+                value = Math.abs(playerId); // Positive integers only
             } catch (NumberFormatException e)
             {
                 System.out.println("Invalid ID: Input is not a number.");
@@ -128,9 +130,16 @@ public class PlayerEntryTableModel extends AbstractTableModel
                 return; // Cancel the edit
             }
 
-            // Remove old value from duplicate checking list
+            // Remove old player ID from duplicate checking list
             PlayerEntryTableModel.playerIds.remove(oldValue);
-            PlayerEntryTableModel.playerIds.add(value); // Add new value to dupe check list
+            PlayerEntryTableModel.playerIds.add(value); // Add new player ID to dupe check list
+
+            // Remove old equipment ID from duplicate check list if present
+            Object equipmentId = this.getValueAt(row, 3);
+            if (equipmentId != null)
+            {
+                PlayerEntryTableModel.equipmentIds.remove(equipmentId);
+            }
 
         } else if (col == 2) // Codename
         {
@@ -178,7 +187,7 @@ public class PlayerEntryTableModel extends AbstractTableModel
         }
         
         /*
-         * If both values exist, add the new player to the database.
+         * If playerID and codename exists, add the new player to the database.
          * Prompt for equipment ID.
          */
         if (playerId != null && codename != null)
@@ -192,11 +201,47 @@ public class PlayerEntryTableModel extends AbstractTableModel
             while (equipmentId == null || equipmentId.isEmpty())
             {
                 equipmentId = JOptionPane.showInputDialog(null, "Enter equipment ID:", codename, JOptionPane.QUESTION_MESSAGE);
+
+                // If null, delete the row
+                if (equipmentId == null) // equipmentId is null when user selects 'cancel'
+                {
+                    // Remove player ID from duplicate checking list if present
+                    if (col == 1)
+                    {
+                        PlayerEntryTableModel.playerIds.remove(value);
+                    } else if (col == 2)
+                    {
+                        PlayerEntryTableModel.playerIds.remove(this.getValueAt(row, 1)); // Value guaranteed to be present
+                    }
+                    
+
+                    // Remove equipment ID from duplicate checking list if present
+                    Object oldEquipmentId = this.getValueAt(row, 3);
+                    if (oldEquipmentId != null)
+                    {
+                        PlayerEntryTableModel.equipmentIds.remove(oldEquipmentId);
+                    }
+
+                    // Clear the row (except for column 0--the row numbers)
+                    this.rowData[row][1] = null;
+                    this.fireTableCellUpdated(row, 1);
+
+                    this.rowData[row][2] = null;
+                    this.fireTableCellUpdated(row, 2);
+
+                    this.rowData[row][3] = null;
+                    this.fireTableCellUpdated(row, 3);
+
+                    return; // Exit method
+                }
+
                 equipmentId = equipmentId.replaceAll("[^0-9]", ""); // Only allow numbers for equipment ID
 
                 try {
                     // Check that input is an integer. Throws exception if not
                     Integer equipmentIdInteger = Integer.valueOf(equipmentId);
+                    equipmentIdInteger = Math.abs(equipmentIdInteger); // Positive integers only
+
                     // Invalid input if the equipment ID is a duplicate
                     if (PlayerEntryTableModel.equipmentIds.contains(equipmentIdInteger))
                     {

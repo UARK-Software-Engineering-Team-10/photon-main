@@ -1,4 +1,4 @@
-package edu.uark.team10;
+package edu.uark.team10.table;
 
 import java.awt.Color;
 import java.awt.Component;

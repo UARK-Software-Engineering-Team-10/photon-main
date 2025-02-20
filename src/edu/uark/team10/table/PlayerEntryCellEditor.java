@@ -1,4 +1,4 @@
-package edu.uark.team10;
+package edu.uark.team10.table;
 
 import java.awt.Font;
 import javax.swing.DefaultCellEditor;
