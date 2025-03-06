@@ -9,6 +9,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import edu.uark.team10.table.PlayerEntryTable;
+
 /**
  * Represents a lazer tag game. Holds member variables for
  * mapping equipment ID to player ID, team number, score, and codename.
@@ -44,17 +46,22 @@ public class Game {
     private UDPServer server = null;
 
     /**
-     * Start the game. Also starts the server.
+     * Start the game. Also starts the UDP server.
      * This method can only be called once per game instance.
      * 
      * @param server
+     * @param tableRedTeam
+     * @param tableGreenTeam
      */
-    public void start(UDPServer server)
+    public void start(UDPServer server, PlayerEntryTable tableRedTeam, PlayerEntryTable tableGreenTeam)
     {
         if (isGameStart) return; // Only allow this method to be called once
 
         this.server = server;
         this.isGameStart = true;
+
+        this.addTeamPlayers(tableRedTeam, Game.RED_TEAM_NUMBER);
+        this.addTeamPlayers(tableGreenTeam, Game.GREEN_TEAM_NUMBER);
 
         // Start the server
         this.server.start(); // Server extends Thread. Threads can only be started once
@@ -101,22 +108,22 @@ public class Game {
     }
 
     /**
-     * Add a player to the game. Get a playerdata object array
-     * from calling getRowData() on a PlayerEntryTableModel.
      * 
-     * @param playerdata An object array with non-null values in this order: [(int) equipment ID, (int) player ID, (int) team number, (string) codename]
+     * @param table
      */
-    public void addPlayer(Object[] playerdata)
+    private void addTeamPlayers(PlayerEntryTable table, int teamNumber)
     {
-        int equipmentId = Integer.valueOf(String.valueOf(playerdata[0]));
-        int playerId = Integer.valueOf(String.valueOf(playerdata[1]));
-        int teamNumber = Integer.valueOf(String.valueOf(playerdata[2]));
-        String codename = String.valueOf(playerdata[3]);
+        for (Object[] playerdata : table.getPlayerEntryTableModel().getRowData())
+        {
+            int equipmentId = Integer.valueOf(String.valueOf(playerdata[0]));
+            int playerId = Integer.valueOf(String.valueOf(playerdata[1]));
+            String codename = String.valueOf(playerdata[2]);
 
-        this.players.put(equipmentId, playerId);
-        this.playerTeams.put(equipmentId, teamNumber);
-        this.scores.put(equipmentId, 0);
-        this.playerCodenames.put(equipmentId, codename);
+            this.players.put(equipmentId, playerId);
+            this.playerTeams.put(equipmentId, teamNumber);
+            this.scores.put(equipmentId, 0);
+            this.playerCodenames.put(equipmentId, codename);
+        }
 
     }
 

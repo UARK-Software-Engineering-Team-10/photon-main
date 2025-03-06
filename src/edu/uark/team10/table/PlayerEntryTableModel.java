@@ -280,13 +280,13 @@ public class PlayerEntryTableModel extends AbstractTableModel
     }
 
     /**
-     * Before starting a game, this method is called to extract and compile the added players
-     * and related data. It does not include rows that have null values--only rows with complete data.
+     * When starting a game, this method is called to extract and compile the players
+     * and related data to be added to the game. It does not include rows that
+     * have null values--only rows with complete data.
      * 
-     * @param teamNumber The team number belonging to this table (53 for red, 43 for green)
-     * @return An object array with non-null values in this order: [(int) equipment ID, (int) player ID, (int) team number, (string) codename]
+     * @return An object array with non-null values in this order: [(int) equipment ID, (int) player ID, (string) codename]
      */
-    public ArrayList<Object[]> getRowData(int teamNumber)
+    public ArrayList<Object[]> getRowData()
     {
         // A list to hold the row data
         ArrayList<Object[]> rowDataList = new ArrayList<>();
@@ -308,7 +308,6 @@ public class PlayerEntryTableModel extends AbstractTableModel
             Object[] data = new Object[] {
                 equipmentId,
                 playerId,
-                teamNumber,
                 codename
             };
 
