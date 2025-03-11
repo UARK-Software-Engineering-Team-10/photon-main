@@ -10,8 +10,8 @@ import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.IOException;
@@ -30,6 +30,9 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.UIManager;
+import javax.swing.JLayeredPane;
+import javax.swing.SwingUtilities;
+
 import edu.uark.team10.table.PlayerEntryTable;
 
 /**
@@ -117,7 +120,7 @@ public class Application extends JFrame { // JFrame lets us create windows
             @Override
             public void actionPerformed(ActionEvent e) {
                 JOptionPane.showMessageDialog(null, "Game started!", "Game Status", JOptionPane.INFORMATION_MESSAGE);
-
+                countdown(10);
                 game.start(server, tableRedTeam, tableGreenTeam); // Start the game
             }
         });
@@ -333,6 +336,80 @@ public class Application extends JFrame { // JFrame lets us create windows
         this.getContentPane().setBackground(new Color(28, 0, 64));
 
         this.validate(); // Validate the components in this frame
+
+        // Sets F12 to start game
+        this.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                System.out.println("Key Pressed: " + e.getKeyCode()); // Debugging, needs to check focus after entering player info
+                if (e.getKeyCode() == KeyEvent.VK_F12) {
+                    JOptionPane.showMessageDialog(null, "Game started!", "Game Status", JOptionPane.INFORMATION_MESSAGE);
+                    countdown(10);
+                    game.start(server, null, null);
+                }
+            }
+        });
     }
 
+    private void countdown(int startFrom) {
+        // Clear player entry screen
+        this.getContentPane().removeAll();
+        this.setJMenuBar(null);
+        this.revalidate();
+        this.repaint();      
+        
+        final JPanel countdownPanel = new JPanel(null);
+        countdownPanel.setBackground(new Color(28, 0, 64));
+        
+        URL logoUrl = getClass().getClassLoader().getResource("edu/uark/team10/assets/logoBK.png");
+        ImageIcon logoImage = new ImageIcon(logoUrl);
+        logoImage = new ImageIcon(
+                logoImage.getImage().getScaledInstance(this.getWidth(), this.getHeight(), Image.SCALE_DEFAULT));
+
+        final JLabel backgroundLabel = new JLabel(logoImage);
+        backgroundLabel.setBounds(0, 0, this.getWidth(), this.getHeight());
+        backgroundLabel.setOpaque(false);
+        
+        final JLabel countdownLabel = new JLabel(String.valueOf(startFrom), JLabel.CENTER);
+        countdownLabel.setFont(new Font("Conthrax SemBd", Font.BOLD, 250));
+        countdownLabel.setForeground(Color.YELLOW);
+        countdownLabel.setBounds(0, 0, this.getWidth(), this.getHeight());
+        
+        JLayeredPane layeredPane = new JLayeredPane();
+        layeredPane.setBounds(0, 0, this.getWidth(), this.getHeight());
+        countdownPanel.add(layeredPane);
+
+        layeredPane.add(backgroundLabel, Integer.valueOf(0)); // Layer 0=background
+        layeredPane.add(countdownLabel, Integer.valueOf(1));
+        
+        this.setLayout(new BorderLayout());
+        this.add(countdownPanel, BorderLayout.CENTER);
+        this.validate();
+        
+        // Using a thread for countdown
+        Thread countdownThread = new Thread(() -> {
+            int count = startFrom;
+            try {
+                while (count > 0) {
+                    final int currentCount = count;
+
+                    SwingUtilities.invokeLater(() -> {
+                        countdownLabel.setText(String.valueOf(currentCount));
+                    });
+
+                    Thread.sleep(1000);
+                    count--;
+                }
+                
+                // When countdown reaches 0, wait a second
+                SwingUtilities.invokeLater(() -> {
+                    countdownLabel.setText("0");
+                });
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
+        countdownThread.start();
+    }
 }
