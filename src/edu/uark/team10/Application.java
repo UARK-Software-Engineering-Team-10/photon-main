@@ -363,7 +363,7 @@ public class Application extends JFrame { // JFrame lets us create windows
             @Override
             public void keyPressed(KeyEvent e) {
                 System.out.println("Key Pressed: " + e.getKeyCode()); // Debugging, needs to check focus after entering player info
-                if (e.getKeyCode() == KeyEvent.VK_F12) {
+                if (e.getKeyCode() == KeyEvent.VK_F5) {
                     JOptionPane.showMessageDialog(null, "Game started!", "Game Status", JOptionPane.INFORMATION_MESSAGE);
                     countdown((int) Game.START_COUNTDOWN).whenComplete((value, exception) -> {
                         if (exception != null)
@@ -375,7 +375,7 @@ public class Application extends JFrame { // JFrame lets us create windows
                         game.start(server, tableRedTeam, tableGreenTeam); // Start the game
                         gameplayScreen(game);
                     });
-                } else if (e.getKeyCode() == KeyEvent.VK_F5)
+                } else if (e.getKeyCode() == KeyEvent.VK_F12)
                 {
                     JOptionPane.showMessageDialog(null, "Cleared player entries.", "Entries", JOptionPane.INFORMATION_MESSAGE);
                     tableRedTeam.clear();
