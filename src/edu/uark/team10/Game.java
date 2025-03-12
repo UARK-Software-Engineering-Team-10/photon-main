@@ -64,14 +64,7 @@ public class Game {
         this.addTeamPlayers(tableGreenTeam, Game.GREEN_TEAM_NUMBER);
 
         // Start the server
-        this.server.start(); // Server extends Thread. Threads can only be started once
-
-        // Decrease game length if testing mode
-        if (isTestingMode)
-        {
-            Game.START_COUNTDOWN = 5L;
-            Game.GAME_LENGTH = 30L;
-        }
+        this.server.start(); // Server extends Thread. Threads can only be started once\
 
         // Start the game after startCountdown seconds. This acts like the countdown timer
         this.server.sendMessage("202", Game.START_COUNTDOWN, TimeUnit.SECONDS);

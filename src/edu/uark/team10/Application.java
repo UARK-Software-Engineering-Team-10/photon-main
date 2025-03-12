@@ -2,7 +2,9 @@ package edu.uark.team10;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.GraphicsEnvironment;
@@ -12,14 +14,19 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.ContainerEvent;
+import java.awt.event.ContainerListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -29,9 +36,11 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.JLayeredPane;
-import javax.swing.SwingUtilities;
+import javax.swing.border.Border;
+import javax.swing.border.EtchedBorder;
 
 import edu.uark.team10.table.PlayerEntryTable;
 
@@ -120,8 +129,17 @@ public class Application extends JFrame { // JFrame lets us create windows
             @Override
             public void actionPerformed(ActionEvent e) {
                 JOptionPane.showMessageDialog(null, "Game started!", "Game Status", JOptionPane.INFORMATION_MESSAGE);
-                countdown(10);
-                game.start(server, tableRedTeam, tableGreenTeam); // Start the game
+                countdown((int) Game.START_COUNTDOWN).whenComplete((value, exception) -> {
+                    if (exception != null)
+                    {
+                        exception.printStackTrace();
+                        return;
+                    }
+
+                    game.start(server, tableRedTeam, tableGreenTeam); // Start the game
+                    gameplayScreen(game);
+                });
+                
             }
         });
 
@@ -193,6 +211,9 @@ public class Application extends JFrame { // JFrame lets us create windows
             public void actionPerformed(ActionEvent e) {
             JOptionPane.showMessageDialog(null, "Testing mode enabled.", "Testing Mode", JOptionPane.INFORMATION_MESSAGE);
             Game.isTestingMode = true; // Set static testing mode to true
+            // Decrease countdown and game length
+            Game.START_COUNTDOWN = 5L;
+            Game.GAME_LENGTH = 30L;
         }});
 
         enableTestingMode.setFont(new Font("Conthrax SemBd", Font.PLAIN, 11));
@@ -344,14 +365,27 @@ public class Application extends JFrame { // JFrame lets us create windows
                 System.out.println("Key Pressed: " + e.getKeyCode()); // Debugging, needs to check focus after entering player info
                 if (e.getKeyCode() == KeyEvent.VK_F12) {
                     JOptionPane.showMessageDialog(null, "Game started!", "Game Status", JOptionPane.INFORMATION_MESSAGE);
-                    countdown(10);
-                    game.start(server, null, null);
+                    countdown((int) Game.START_COUNTDOWN).whenComplete((value, exception) -> {
+                        if (exception != null)
+                        {
+                            exception.printStackTrace();
+                            return;
+                        }
+    
+                        game.start(server, tableRedTeam, tableGreenTeam); // Start the game
+                        gameplayScreen(game);
+                    });
+                } else if (e.getKeyCode() == KeyEvent.VK_F5)
+                {
+                    JOptionPane.showMessageDialog(null, "Cleared player entries.", "Entries", JOptionPane.INFORMATION_MESSAGE);
+                    tableRedTeam.clear();
+                    tableGreenTeam.clear();
                 }
             }
         });
     }
-
-    private void countdown(int startFrom) {
+    
+    private CompletableFuture<Void> countdown(int startFrom) {
         // Clear player entry screen
         this.getContentPane().removeAll();
         this.setJMenuBar(null);
@@ -386,6 +420,8 @@ public class Application extends JFrame { // JFrame lets us create windows
         this.add(countdownPanel, BorderLayout.CENTER);
         this.validate();
         
+        // Other parts of the program can wait for the countdown to finish
+        CompletableFuture<Void> future = new CompletableFuture<>();
         // Using a thread for countdown
         Thread countdownThread = new Thread(() -> {
             int count = startFrom;
@@ -406,10 +442,168 @@ public class Application extends JFrame { // JFrame lets us create windows
                     countdownLabel.setText("0");
                 });
                 Thread.sleep(1000);
+
+                future.complete(null);
             } catch (InterruptedException e) {
+                future.completeExceptionally(e);
                 e.printStackTrace();
             }
         });
         countdownThread.start();
+
+        return future;
     }
+
+    /**
+     * Creates the gameplay screen and displays it.
+     * 
+     * @param game A game instance
+     */
+    private void gameplayScreen(Game game)
+    {
+        this.getContentPane().removeAll();
+        this.revalidate();
+        this.repaint();
+
+        final Font font = new Font("Conthrax SemBd", Font.PLAIN, 18);
+
+        // Borders
+        final Border marginBorder = BorderFactory.createEmptyBorder(10, 10, 10, 10);
+        final Border etchedBorder = BorderFactory.createEtchedBorder(EtchedBorder.RAISED);
+        final Border border = BorderFactory.createCompoundBorder(etchedBorder, marginBorder);
+
+        JPanel logPanel = new JPanel();
+        logPanel.setPreferredSize(new Dimension(this.getWidth() / 4, this.getHeight()));
+        logPanel.setLayout(new BoxLayout(logPanel, BoxLayout.PAGE_AXIS));
+        logPanel.setBackground(new Color(28, 0, 64));
+        logPanel.setBorder(border);
+
+        JLabel logPanelHeader = new JLabel("Action Log");
+        logPanelHeader.setFont(font);
+        logPanelHeader.setForeground(Color.WHITE);
+        logPanelHeader.setAlignmentX(Component.CENTER_ALIGNMENT);
+        logPanelHeader.setBorder(marginBorder);
+        logPanel.add(logPanelHeader);
+
+        // TODO add action log
+        // Listens for added/removed components for the action log container.
+        logPanel.addContainerListener(new ContainerListener() {
+            @Override
+            public void componentAdded(ContainerEvent e) {
+                // Removes log entries to make room for new log entries
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        Component[] components = logPanel.getComponents();
+        
+                        if (components == null) return;
+                        if (components.length < 15) return;
+        
+                        for (int i = 15; i < components.length; i++)
+                        {
+                            logPanel.remove(components[i]);
+                        }
+        
+        
+                    }
+                    
+                });
+            }
+            @Override
+            public void componentRemoved(ContainerEvent e) {
+                //validate(); // might not need--will need testing
+            }
+            
+        });
+
+        JPanel redTeam = new JPanel(new BorderLayout());
+        redTeam.setPreferredSize(new Dimension(this.getWidth() / 3, this.getHeight()));
+        redTeam.setBackground(new Color(122, 0, 0));
+        redTeam.setBorder(border);
+        
+        JLabel redTeamHeader = new JLabel("Red Team");
+        redTeamHeader.setFont(font);
+        redTeamHeader.setForeground(Color.WHITE);
+        redTeamHeader.setHorizontalAlignment(JLabel.CENTER);
+        redTeamHeader.setBorder(marginBorder);
+        redTeam.add(redTeamHeader, BorderLayout.NORTH);
+
+        JPanel redTeamPlayersPanel = new JPanel();
+        redTeamPlayersPanel.setBackground(new Color(122, 0, 0));
+        redTeamPlayersPanel.setForeground(Color.WHITE);
+        redTeamPlayersPanel.setLayout(new BoxLayout(redTeamPlayersPanel, BoxLayout.PAGE_AXIS));
+
+        JPanel redTeamScoresPanel = new JPanel();
+        redTeamScoresPanel.setBackground(new Color(122, 0, 0));
+        redTeamScoresPanel.setForeground(Color.WHITE);
+        redTeamScoresPanel.setLayout(new BoxLayout(redTeamScoresPanel, BoxLayout.PAGE_AXIS));
+
+        // Adds all the red team players and their scores to the panel
+        Map<String, Integer> redTeamPlayers = game.getTeamPlayerScoresOrdered(Game.RED_TEAM_NUMBER);
+        redTeamPlayers.forEach((codename, score) -> {
+            JLabel codenameLabel = new JLabel(codename);
+            codenameLabel.setFont(font.deriveFont(14F));
+            codenameLabel.setForeground(Color.WHITE);
+
+            JLabel scoreLabel = new JLabel(String.valueOf(score));
+            scoreLabel.setFont(font.deriveFont(14F));
+            scoreLabel.setForeground(Color.WHITE);
+
+            redTeamPlayersPanel.add(codenameLabel);
+            redTeamScoresPanel.add(scoreLabel);
+        });
+        redTeam.add(redTeamPlayersPanel, BorderLayout.WEST);
+        redTeam.add(redTeamScoresPanel, BorderLayout.EAST);
+
+        JPanel greenTeam = new JPanel(new BorderLayout());
+        greenTeam.setPreferredSize(new Dimension(this.getWidth() / 3, this.getHeight()));
+        greenTeam.setBackground(new Color(0, 122, 0));
+        greenTeam.setBorder(border);
+
+        JLabel greenTeamHeader = new JLabel("Green Team");
+        greenTeamHeader.setFont(font);
+        greenTeamHeader.setForeground(Color.WHITE);
+        greenTeamHeader.setHorizontalAlignment(JLabel.CENTER);
+        greenTeamHeader.setBorder(marginBorder);
+        greenTeam.add(greenTeamHeader, BorderLayout.NORTH);
+
+        JPanel greenTeamPlayersPanel = new JPanel();
+        greenTeamPlayersPanel.setBackground(new Color(0, 122, 0));
+        greenTeamPlayersPanel.setForeground(Color.WHITE);
+        greenTeamPlayersPanel.setLayout(new BoxLayout(greenTeamPlayersPanel, BoxLayout.PAGE_AXIS));
+
+        JPanel greenTeamScoresPanel = new JPanel();
+        greenTeamScoresPanel.setBackground(new Color(0, 122, 0));
+        greenTeamScoresPanel.setForeground(Color.WHITE);
+        greenTeamScoresPanel.setLayout(new BoxLayout(greenTeamScoresPanel, BoxLayout.PAGE_AXIS));
+
+        // Adds all the green team players and their scores to the panel
+        Map<String, Integer> greenTeamPlayers = game.getTeamPlayerScoresOrdered(Game.GREEN_TEAM_NUMBER);
+        greenTeamPlayers.forEach((codename, score) -> {
+            JLabel codenameLabel = new JLabel(codename);
+            codenameLabel.setFont(font.deriveFont(14F));
+            codenameLabel.setForeground(Color.WHITE);
+
+            JLabel scoreLabel = new JLabel(String.valueOf(score));
+            scoreLabel.setFont(font.deriveFont(14F));
+            scoreLabel.setForeground(Color.WHITE);
+
+            greenTeamPlayersPanel.add(codenameLabel);
+            greenTeamScoresPanel.add(scoreLabel);
+
+        });
+        greenTeam.add(greenTeamPlayersPanel, BorderLayout.WEST);
+        greenTeam.add(greenTeamScoresPanel, BorderLayout.EAST);
+
+        JPanel panel = new JPanel(new FlowLayout());
+        panel.add(redTeam);
+        panel.add(logPanel);
+        panel.add(greenTeam);
+
+        this.add(panel);
+
+        this.getContentPane().setBackground(new Color(28, 0, 64));
+        this.validate();
+    }
+
 }
