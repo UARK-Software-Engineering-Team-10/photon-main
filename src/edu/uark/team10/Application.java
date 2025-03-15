@@ -359,7 +359,7 @@ public class Application extends JFrame { // JFrame lets us create windows
         this.validate(); // Validate the components in this frame
 
         // Sets F12 to start game
-        this.addKeyListener(new KeyAdapter() {
+        AppKeyDispatcher.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
                 System.out.println("Key Pressed: " + e.getKeyCode()); // Debugging, needs to check focus after entering player info
@@ -382,7 +382,7 @@ public class Application extends JFrame { // JFrame lets us create windows
                     tableGreenTeam.clear();
                 }
             }
-        });
+        }, this.getRootPane());
     }
     
     private CompletableFuture<Void> countdown(int startFrom) {
