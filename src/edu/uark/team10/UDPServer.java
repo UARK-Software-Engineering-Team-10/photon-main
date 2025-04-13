@@ -4,6 +4,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -109,7 +110,13 @@ public class UDPServer extends Thread {
                         
                     }
 
-                    System.out.println(player1 + " Shot " + player2);
+                    double secondsElapsed = (double) (Instant.now().getEpochSecond() - game.startInstant.getEpochSecond());
+                    double minutesElapsed = secondsElapsed / 60.0;
+                    String timeElapsed = String.format("%02.0f:%02.0f", Math.floor(minutesElapsed), (minutesElapsed - Math.floor(minutesElapsed)) * 60);
+                    String logMessage = "[" + timeElapsed + "] " + player1 + " HIT " + player2;
+
+                    System.out.println(logMessage);
+                    this.game.updateActionDisplay(logMessage);
 
                 } catch (NumberFormatException e) {
                     System.out.println("Invalid format in received message: " + receivedMessage);

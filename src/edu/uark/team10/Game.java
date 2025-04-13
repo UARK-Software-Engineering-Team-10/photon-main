@@ -6,6 +6,7 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -37,12 +38,15 @@ public class Game {
     public static final int RED_TEAM_NUMBER = 53;
     public static final int GREEN_TEAM_NUMBER = 43;
 
-    public static long START_COUNTDOWN = 30L;
-    public static long GAME_LENGTH = 360L; // 6 minutes
+    public static long START_COUNTDOWN = 30L; // 30 seconds default
+    public static long GAME_LENGTH = 360L; // default 6 minutes
 
     public static boolean isTestingMode = false;
 
     private static Application actionDisplay = null;
+
+    // Used for timestamps on action log
+    public Instant startInstant = null;
 
     // Maps equipment ID to player ID
     private HashMap<Integer, Integer> players = new HashMap<>();
@@ -56,7 +60,7 @@ public class Game {
     private ArrayList<Integer> playersWhoScoredBase = new ArrayList<>();
 
     // An array for the action log. Used for the action display/gameplay screen
-    private ArrayList<String> actionLog = new ArrayList<>();
+    private ArrayList<JLabel> actionLog = new ArrayList<>();
 
     private boolean isGameStart = false;
     private boolean isGameEnd = false;
@@ -102,7 +106,9 @@ public class Game {
         // Wait a second to make sure the server has started first
         this.server.sendMessage("202", 1L, TimeUnit.SECONDS);
 
-        this.actionLog.add("Game start! (" + Game.GAME_LENGTH / 60.0 + " minutes)");
+        this.startInstant = Instant.now();
+
+        updateActionDisplay("Game start! (" + Game.GAME_LENGTH / 60.0 + " minutes)");
 
         // End the game after gameLength + startCountdown seconds
         CompletableFuture<Void> gameTimerFuture = new CompletableFuture<Void>().completeOnTimeout(null, Game.GAME_LENGTH + Game.START_COUNTDOWN, TimeUnit.SECONDS);
@@ -132,6 +138,17 @@ public class Game {
         this.server.sendMessage("221"); // Send 3 times according to requirements
         this.server.sendMessage("221");
         this.server.sendMessage("221");
+
+        // End game code (221) packet takes time to be received
+        new CompletableFuture<Void>().completeOnTimeout(null, 1, TimeUnit.SECONDS)
+            .whenComplete((none, exception) -> {
+                if (exception != null)
+                {
+                    exception.printStackTrace();
+                }
+
+                updateActionDisplay("The game has ended.");
+            });
 
     }
 
@@ -320,7 +337,7 @@ public class Game {
     {
         this.checkValidity(equipmentId);
         int score = this.scores.get(equipmentId) + points;
-        this.scores.put(equipmentId, points);
+        this.scores.put(equipmentId, score);
 
         return score;
     }
@@ -353,8 +370,15 @@ public class Game {
             .collect(Collectors.toMap(this::getCodename, this::getPlayerScore)); // Convert the array of equipment IDs to a map of codenames and scores
     }
 
-    private void updateActionDisplay()
+    /**
+     * Draws and updates the action display with the current players, scores, and action messages
+     * 
+     * @param newActionMessage A message action to add to the log. May be null.
+     */
+    public void updateActionDisplay(String newActionMessage)
     {
+        if (actionDisplay == null) return;
+
         actionDisplay.getContentPane().removeAll();
         actionDisplay.revalidate();
         actionDisplay.repaint();
@@ -369,11 +393,10 @@ public class Game {
         // Log
         JPanel logPanel = new JPanel();
         logPanel.setPreferredSize(new Dimension(actionDisplay.getWidth() / 4, actionDisplay.getHeight()));
-        logPanel.setLayout(new BoxLayout(logPanel, BoxLayout.PAGE_AXIS));
+        logPanel.setLayout(new BorderLayout());
         logPanel.setBackground(new Color(28, 0, 64));
+        logPanel.setForeground(Color.WHITE);
         logPanel.setBorder(border);
-
-
 
         // Log header
         JLabel logPanelHeader = new JLabel("Action Log");
@@ -381,40 +404,60 @@ public class Game {
         logPanelHeader.setForeground(Color.WHITE);
         logPanelHeader.setAlignmentX(Component.CENTER_ALIGNMENT);
         logPanelHeader.setBorder(marginBorder);
-        logPanel.add(logPanelHeader);
+        logPanel.add(logPanelHeader, BorderLayout.NORTH);
 
-        // TODO add action log
-        // Listens for added/removed components for the action log container.
-        /*
-        logPanel.addContainerListener(new ContainerListener() {
-            @Override
-            public void componentAdded(ContainerEvent e) {
-                // Removes log entries to make room for new log entries
-                SwingUtilities.invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        Component[] components = logPanel.getComponents();
-        
-                        if (components == null) return;
-                        if (components.length < 15) return;
-        
-                        for (int i = 15; i < components.length; i++)
-                        {
-                            logPanel.remove(components[i]);
-                        }
-        
-        
-                    }
-                    
-                });
+        // Panel that holds the messages inside of log
+        JPanel logMessagePanel = new JPanel();
+        logMessagePanel.setLayout(new BoxLayout(logMessagePanel, BoxLayout.PAGE_AXIS));
+        logMessagePanel.setBackground(new Color(28, 0, 64));
+        logMessagePanel.setForeground(Color.WHITE);
+        logPanel.add(logMessagePanel, BorderLayout.WEST);
+
+        // Store the new action log in memory
+        if (newActionMessage != null)
+        {
+            final int charLengthLimit = 26;
+            Color messageColor = Color.WHITE;
+
+            // Alternate colors for readability
+            if (!this.actionLog.isEmpty())
+            {
+                if (this.actionLog.get(this.actionLog.size() - 1).getForeground() == Color.WHITE)
+                {
+                    messageColor = Color.LIGHT_GRAY;
+
+                }
+
             }
-            @Override
-            public void componentRemoved(ContainerEvent e) {
-                //validate(); // might not need--will need testing
+
+            // Wrap long messages
+            for (int i = 0; i < Math.ceil(1.0 * newActionMessage.length() / charLengthLimit); i++)
+            {
+                String messagePiece = newActionMessage.substring(i * charLengthLimit, Math.min(i * charLengthLimit + charLengthLimit, newActionMessage.length()));
+
+                if (i > 0)
+                {
+                    messagePiece = "..." + messagePiece;
+                }
+
+                JLabel actionMessage = new JLabel(messagePiece);
+                actionMessage.setFont(font.deriveFont(11F));
+                actionMessage.setHorizontalAlignment(JLabel.LEFT);
+                actionMessage.setForeground(messageColor);
+
+                this.actionLog.add(actionMessage);
+
             }
-            
-        });
-        */
+
+        }
+
+        final int logLengthLimit = 40;
+        // Display the messages. Display the newest messages if the log gets too long
+        for (int i = Math.max(0, this.actionLog.size() - logLengthLimit); i < this.actionLog.size(); i++)
+        {
+            logMessagePanel.add(this.actionLog.get(i));
+
+        }
 
         // Red team container for header, players, and scores
         JPanel redTeam = new JPanel(new BorderLayout());
@@ -446,11 +489,11 @@ public class Game {
         Map<String, Integer> redTeamPlayers = this.getTeamPlayerScoresOrdered(Game.RED_TEAM_NUMBER);
         redTeamPlayers.forEach((codename, score) -> {
             JLabel codenameLabel = new JLabel(codename);
-            codenameLabel.setFont(font.deriveFont(14F));
+            codenameLabel.setFont(font.deriveFont(12F));
             codenameLabel.setForeground(Color.WHITE);
 
             JLabel scoreLabel = new JLabel(String.valueOf(score));
-            scoreLabel.setFont(font.deriveFont(14F));
+            scoreLabel.setFont(font.deriveFont(12F));
             scoreLabel.setForeground(Color.WHITE);
 
             redTeamPlayersPanel.add(codenameLabel);
@@ -489,11 +532,11 @@ public class Game {
         Map<String, Integer> greenTeamPlayers = this.getTeamPlayerScoresOrdered(Game.GREEN_TEAM_NUMBER);
         greenTeamPlayers.forEach((codename, score) -> {
             JLabel codenameLabel = new JLabel(codename);
-            codenameLabel.setFont(font.deriveFont(14F));
+            codenameLabel.setFont(font.deriveFont(12F));
             codenameLabel.setForeground(Color.WHITE);
 
             JLabel scoreLabel = new JLabel(String.valueOf(score));
-            scoreLabel.setFont(font.deriveFont(14F));
+            scoreLabel.setFont(font.deriveFont(12F));
             scoreLabel.setForeground(Color.WHITE);
 
             greenTeamPlayersPanel.add(codenameLabel);

@@ -2,9 +2,7 @@ package edu.uark.team10;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.GraphicsEnvironment;
@@ -14,19 +12,14 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.awt.event.ContainerEvent;
-import java.awt.event.ContainerListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -39,9 +32,6 @@ import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.JLayeredPane;
-import javax.swing.border.Border;
-import javax.swing.border.EtchedBorder;
-
 import edu.uark.team10.table.PlayerEntryTable;
 
 /**
@@ -137,7 +127,6 @@ public class Application extends JFrame { // JFrame lets us create windows
                     }
 
                     game.start(server, tableRedTeam, tableGreenTeam); // Start the game
-                    gameplayScreen(game);
                 });
                 
             }
@@ -362,7 +351,7 @@ public class Application extends JFrame { // JFrame lets us create windows
         AppKeyDispatcher.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                System.out.println("Key Pressed: " + e.getKeyCode()); // Debugging, needs to check focus after entering player info
+                //System.out.println("Key Pressed: " + e.getKeyCode()); // Debugging, needs to check focus after entering player info
                 if (e.getKeyCode() == KeyEvent.VK_F5) {
                     JOptionPane.showMessageDialog(null, "Game started!", "Game Status", JOptionPane.INFORMATION_MESSAGE);
                     countdown((int) Game.START_COUNTDOWN).whenComplete((value, exception) -> {
@@ -373,7 +362,6 @@ public class Application extends JFrame { // JFrame lets us create windows
                         }
     
                         game.start(server, tableRedTeam, tableGreenTeam); // Start the game
-                        gameplayScreen(game);
                     });
                 } else if (e.getKeyCode() == KeyEvent.VK_F12)
                 {

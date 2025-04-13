@@ -32,9 +32,9 @@ public class Main {
          */
         Application application = new Application(game, server);
 
-        // Sets the JFrame to display the gameplay screen
-        // Because Game controlls the events
-        game.setActionDisplay(application);
+        // Sets which JFrame to use for action display
+        // Because Game controls the events
+        Game.setActionDisplay(application);
 
     }
     

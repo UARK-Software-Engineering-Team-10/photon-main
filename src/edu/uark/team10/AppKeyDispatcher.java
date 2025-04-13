@@ -17,8 +17,6 @@ public class AppKeyDispatcher implements KeyEventDispatcher {
     public boolean dispatchKeyEvent(KeyEvent e) {
         int eventType = e.getID();
 
-        //System.out.println("AppKeyDispatcher Key pressed: " + e.getKeyCode() + " " + e.getKeyChar());
-
         for (KeyAdapter action : keyActions.keySet())
         {
             if (!keyActions.get(action).isShowing()) // The action's parent must be visible on the screen to be valid
