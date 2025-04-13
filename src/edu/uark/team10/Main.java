@@ -30,7 +30,11 @@ public class Main {
          * Create and show the user interface.
          * Pass in game and server so we can configure them and then start them.
          */
-        new Application(game, server);
+        Application application = new Application(game, server);
+
+        // Sets the JFrame to display the gameplay screen
+        // Because Game controlls the events
+        game.setActionDisplay(application);
 
     }
     

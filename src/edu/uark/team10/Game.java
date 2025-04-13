@@ -1,5 +1,11 @@
 package edu.uark.team10;
 
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -8,6 +14,13 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.border.Border;
+import javax.swing.border.EtchedBorder;
 
 import edu.uark.team10.table.PlayerEntryTable;
 
@@ -29,6 +42,8 @@ public class Game {
 
     public static boolean isTestingMode = false;
 
+    private static Application actionDisplay = null;
+
     // Maps equipment ID to player ID
     private HashMap<Integer, Integer> players = new HashMap<>();
     // Maps equipment ID to team number
@@ -40,10 +55,18 @@ public class Game {
     // A list of equipment ID who have scored a base
     private ArrayList<Integer> playersWhoScoredBase = new ArrayList<>();
 
+    // An array for the action log. Used for the action display/gameplay screen
+    private ArrayList<String> actionLog = new ArrayList<>();
+
     private boolean isGameStart = false;
     private boolean isGameEnd = false;
 
     private UDPServer server = null;
+
+    public static void setActionDisplay(Application actionDisplay)
+    {
+        Game.actionDisplay = actionDisplay;
+    }
 
     /**
      * Start the game. Also starts the UDP server.
@@ -55,7 +78,17 @@ public class Game {
      */
     public void start(UDPServer server, PlayerEntryTable tableRedTeam, PlayerEntryTable tableGreenTeam)
     {
-        if (isGameStart) return; // Only allow this method to be called once
+        if (this.isGameStart) return; // Only allow this method to be called once
+
+        try {
+            if (Game.actionDisplay == null)
+            {
+                throw new Exception("Game error: action display not set.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Running game without display.");
+        }
 
         this.server = server;
         this.isGameStart = true;
@@ -64,10 +97,12 @@ public class Game {
         this.addTeamPlayers(tableGreenTeam, Game.GREEN_TEAM_NUMBER);
 
         // Start the server
-        this.server.start(); // Server extends Thread. Threads can only be started once\
+        this.server.start(); // Server extends Thread. Threads can only be started one time
 
-        // Start the game after startCountdown seconds. This acts like the countdown timer
-        this.server.sendMessage("202", Game.START_COUNTDOWN, TimeUnit.SECONDS);
+        // Wait a second to make sure the server has started first
+        this.server.sendMessage("202", 1L, TimeUnit.SECONDS);
+
+        this.actionLog.add("Game start! (" + Game.GAME_LENGTH / 60.0 + " minutes)");
 
         // End the game after gameLength + startCountdown seconds
         CompletableFuture<Void> gameTimerFuture = new CompletableFuture<Void>().completeOnTimeout(null, Game.GAME_LENGTH + Game.START_COUNTDOWN, TimeUnit.SECONDS);
@@ -165,6 +200,67 @@ public class Game {
     }
 
     /**
+     * Get the score of the player using their equipmentId
+     * 
+     * @param equipmentId
+     * @return This player's score
+     */
+    private int getPlayerScore(int equipmentId)
+    {
+        this.checkValidity(equipmentId);
+
+        return this.scores.get(equipmentId);
+    }
+
+    /**
+     * Get the total score of a team
+     * 
+     * @param teamNumber
+     * @return Total score of this team
+     */
+    private int getTeamScore(int teamNumber)
+    {
+        this.checkValidity(teamNumber);
+        
+        return this.getEquipmentIdsOnTeam(teamNumber).stream()
+            .mapToInt(this::getPlayerScore) // Convert the array of equipment IDs to an IntStream of player scores
+            .sum(); // Sum the player scores
+    }
+
+    /**
+     * Checks if this equipment ID has scored a base.
+     * 
+     * @param equipmentId
+     * @return True if player scored a base
+     */
+    private boolean hasPlayerScoredBase(int equipmentId)
+    {
+        this.checkValidity(equipmentId);
+
+        return this.playersWhoScoredBase.contains(equipmentId);
+    }
+
+    /**
+     * Get the team number that has the highest total score
+     * @return the team number or -1 if equal
+     */
+    public int getLeadingTeam()
+    {
+        int redTeamScore = this.getTeamScore(Game.RED_TEAM_NUMBER);
+        int greenTeamScore = this.getTeamScore(Game.GREEN_TEAM_NUMBER);
+        
+        if (redTeamScore > greenTeamScore)
+        {
+            return Game.RED_TEAM_NUMBER;
+        } else if (redTeamScore < greenTeamScore)
+        {
+            return Game.GREEN_TEAM_NUMBER;
+        }
+
+        return -1; // Scores are equal
+    }
+
+    /**
      * Get the team number of the equipmentId. If the equipment ID
      * is a team number, then itself is returned.
      * 
@@ -193,34 +289,6 @@ public class Game {
     }
 
     /**
-     * Get the score of the player using their equipmentId
-     * 
-     * @param equipmentId
-     * @return This player's score
-     */
-    public int getPlayerScore(int equipmentId)
-    {
-        this.checkValidity(equipmentId);
-
-        return this.scores.get(equipmentId);
-    }
-
-    /**
-     * Get the total score of a team
-     * 
-     * @param teamNumber
-     * @return Total score of this team
-     */
-    public int getTeamScore(int teamNumber)
-    {
-        this.checkValidity(teamNumber);
-        
-        return this.getEquipmentIdsOnTeam(teamNumber).stream()
-            .mapToInt(this::getPlayerScore) // Convert the array of equipment IDs to an IntStream of player scores
-            .sum(); // Sum the player scores
-    }
-
-    /**
      * Get the codename of the player associated with equipmentId.
      * Adds stylized "B" to the beginning of their name if they scored a base.
      * 
@@ -239,19 +307,6 @@ public class Game {
         }
 
         return codename;
-    }
-
-    /**
-     * Checks if this equipment ID has scored a base.
-     * 
-     * @param equipmentId
-     * @return True if player scored a base
-     */
-    public boolean hasPlayerScoredBase(int equipmentId)
-    {
-        this.checkValidity(equipmentId);
-
-        return this.playersWhoScoredBase.contains(equipmentId);
     }
 
     /**
@@ -275,7 +330,7 @@ public class Game {
      * 
      * @param equipmentId The equipment ID of the player
      */
-    public void playerScoredBase(int equipmentId)
+    public void setPlayerScoredBase(int equipmentId)
     {
         this.checkValidity(equipmentId);
 
@@ -296,6 +351,168 @@ public class Game {
         return this.getEquipmentIdsOnTeam(teamNumber).stream()
             .sorted(Comparator.comparingInt(this::getPlayerScore)) // Sort players by score
             .collect(Collectors.toMap(this::getCodename, this::getPlayerScore)); // Convert the array of equipment IDs to a map of codenames and scores
+    }
+
+    private void updateActionDisplay()
+    {
+        actionDisplay.getContentPane().removeAll();
+        actionDisplay.revalidate();
+        actionDisplay.repaint();
+
+        final Font font = new Font("Conthrax SemBd", Font.PLAIN, 18);
+
+        // Borders
+        final Border marginBorder = BorderFactory.createEmptyBorder(10, 10, 10, 10);
+        final Border etchedBorder = BorderFactory.createEtchedBorder(EtchedBorder.RAISED);
+        final Border border = BorderFactory.createCompoundBorder(etchedBorder, marginBorder);
+
+        // Log
+        JPanel logPanel = new JPanel();
+        logPanel.setPreferredSize(new Dimension(actionDisplay.getWidth() / 4, actionDisplay.getHeight()));
+        logPanel.setLayout(new BoxLayout(logPanel, BoxLayout.PAGE_AXIS));
+        logPanel.setBackground(new Color(28, 0, 64));
+        logPanel.setBorder(border);
+
+
+
+        // Log header
+        JLabel logPanelHeader = new JLabel("Action Log");
+        logPanelHeader.setFont(font);
+        logPanelHeader.setForeground(Color.WHITE);
+        logPanelHeader.setAlignmentX(Component.CENTER_ALIGNMENT);
+        logPanelHeader.setBorder(marginBorder);
+        logPanel.add(logPanelHeader);
+
+        // TODO add action log
+        // Listens for added/removed components for the action log container.
+        /*
+        logPanel.addContainerListener(new ContainerListener() {
+            @Override
+            public void componentAdded(ContainerEvent e) {
+                // Removes log entries to make room for new log entries
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        Component[] components = logPanel.getComponents();
+        
+                        if (components == null) return;
+                        if (components.length < 15) return;
+        
+                        for (int i = 15; i < components.length; i++)
+                        {
+                            logPanel.remove(components[i]);
+                        }
+        
+        
+                    }
+                    
+                });
+            }
+            @Override
+            public void componentRemoved(ContainerEvent e) {
+                //validate(); // might not need--will need testing
+            }
+            
+        });
+        */
+
+        // Red team container for header, players, and scores
+        JPanel redTeam = new JPanel(new BorderLayout());
+        redTeam.setPreferredSize(new Dimension(actionDisplay.getWidth() / 3, actionDisplay.getHeight()));
+        redTeam.setBackground(new Color(122, 0, 0));
+        redTeam.setBorder(border);
+        
+        // Red team header
+        JLabel redTeamHeader = new JLabel("Red Team");
+        redTeamHeader.setFont(font);
+        redTeamHeader.setForeground(Color.WHITE);
+        redTeamHeader.setHorizontalAlignment(JLabel.CENTER);
+        redTeamHeader.setBorder(marginBorder);
+        redTeam.add(redTeamHeader, BorderLayout.NORTH);
+
+        // Red team players
+        JPanel redTeamPlayersPanel = new JPanel();
+        redTeamPlayersPanel.setBackground(new Color(122, 0, 0));
+        redTeamPlayersPanel.setForeground(Color.WHITE);
+        redTeamPlayersPanel.setLayout(new BoxLayout(redTeamPlayersPanel, BoxLayout.PAGE_AXIS));
+        
+        // Red team scores
+        JPanel redTeamScoresPanel = new JPanel();
+        redTeamScoresPanel.setBackground(new Color(122, 0, 0));
+        redTeamScoresPanel.setForeground(Color.WHITE);
+        redTeamScoresPanel.setLayout(new BoxLayout(redTeamScoresPanel, BoxLayout.PAGE_AXIS));
+
+        // Adds all the red team players and their scores to the players panel and scores panel
+        Map<String, Integer> redTeamPlayers = this.getTeamPlayerScoresOrdered(Game.RED_TEAM_NUMBER);
+        redTeamPlayers.forEach((codename, score) -> {
+            JLabel codenameLabel = new JLabel(codename);
+            codenameLabel.setFont(font.deriveFont(14F));
+            codenameLabel.setForeground(Color.WHITE);
+
+            JLabel scoreLabel = new JLabel(String.valueOf(score));
+            scoreLabel.setFont(font.deriveFont(14F));
+            scoreLabel.setForeground(Color.WHITE);
+
+            redTeamPlayersPanel.add(codenameLabel);
+            redTeamScoresPanel.add(scoreLabel);
+        });
+        redTeam.add(redTeamPlayersPanel, BorderLayout.WEST);
+        redTeam.add(redTeamScoresPanel, BorderLayout.EAST);
+
+        // Green team container for header, players, and scores
+        JPanel greenTeam = new JPanel(new BorderLayout());
+        greenTeam.setPreferredSize(new Dimension(actionDisplay.getWidth() / 3, actionDisplay.getHeight()));
+        greenTeam.setBackground(new Color(0, 122, 0));
+        greenTeam.setBorder(border);
+
+        // Green team header
+        JLabel greenTeamHeader = new JLabel("Green Team");
+        greenTeamHeader.setFont(font);
+        greenTeamHeader.setForeground(Color.WHITE);
+        greenTeamHeader.setHorizontalAlignment(JLabel.CENTER);
+        greenTeamHeader.setBorder(marginBorder);
+        greenTeam.add(greenTeamHeader, BorderLayout.NORTH);
+
+        // Green team players
+        JPanel greenTeamPlayersPanel = new JPanel();
+        greenTeamPlayersPanel.setBackground(new Color(0, 122, 0));
+        greenTeamPlayersPanel.setForeground(Color.WHITE);
+        greenTeamPlayersPanel.setLayout(new BoxLayout(greenTeamPlayersPanel, BoxLayout.PAGE_AXIS));
+
+        // Green team scores
+        JPanel greenTeamScoresPanel = new JPanel();
+        greenTeamScoresPanel.setBackground(new Color(0, 122, 0));
+        greenTeamScoresPanel.setForeground(Color.WHITE);
+        greenTeamScoresPanel.setLayout(new BoxLayout(greenTeamScoresPanel, BoxLayout.PAGE_AXIS));
+
+        // Adds all the green team players and their scores to the players panel and scores panel
+        Map<String, Integer> greenTeamPlayers = this.getTeamPlayerScoresOrdered(Game.GREEN_TEAM_NUMBER);
+        greenTeamPlayers.forEach((codename, score) -> {
+            JLabel codenameLabel = new JLabel(codename);
+            codenameLabel.setFont(font.deriveFont(14F));
+            codenameLabel.setForeground(Color.WHITE);
+
+            JLabel scoreLabel = new JLabel(String.valueOf(score));
+            scoreLabel.setFont(font.deriveFont(14F));
+            scoreLabel.setForeground(Color.WHITE);
+
+            greenTeamPlayersPanel.add(codenameLabel);
+            greenTeamScoresPanel.add(scoreLabel);
+
+        });
+        greenTeam.add(greenTeamPlayersPanel, BorderLayout.WEST);
+        greenTeam.add(greenTeamScoresPanel, BorderLayout.EAST);
+
+        // A container to hold everything (red team, log, green team)
+        JPanel panel = new JPanel(new FlowLayout());
+        panel.add(redTeam);
+        panel.add(logPanel);
+        panel.add(greenTeam);
+
+        actionDisplay.add(panel);
+
+        actionDisplay.getContentPane().setBackground(new Color(28, 0, 64));
+        actionDisplay.validate();
     }
     
 }

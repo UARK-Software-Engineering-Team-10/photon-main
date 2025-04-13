@@ -101,7 +101,7 @@ public class UDPServer extends Thread {
                         if (shooterTeamNumber != targetTeamNumber) // Tagged opposing team's base
                         {
                             this.game.addPoints(Game.BASE_POINTS, shooterEquipmentId);
-                            this.game.playerScoredBase(shooterEquipmentId);
+                            this.game.setPlayerScoredBase(shooterEquipmentId);
 
                         } // No points removed for tagging your own base
                         // Team number will be the message whether or not it's the opposite base
