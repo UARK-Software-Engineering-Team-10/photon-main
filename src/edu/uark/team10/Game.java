@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.border.Border;
 import javax.swing.border.EtchedBorder;
@@ -148,6 +149,17 @@ public class Game {
                 }
 
                 updateActionDisplay("The game has ended.");
+
+                JOptionPane.showMessageDialog(null, "Click 'OK' to start a new game.", "The game has ended.", JOptionPane.INFORMATION_MESSAGE);
+                
+                // Stop the server, dispose the old display, and create a new game
+                this.server.stopServer();
+                Game.actionDisplay.dispose();
+                Game game = new Game();
+                UDPServer server = new UDPServer(game);
+                Application application = new Application(game, server);
+                Game.setActionDisplay(application);
+
             });
 
     }

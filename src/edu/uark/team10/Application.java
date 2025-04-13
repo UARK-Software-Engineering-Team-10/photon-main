@@ -65,6 +65,7 @@ public class Application extends JFrame { // JFrame lets us create windows
         this.setSize(windowSize); // Resize here
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setResizable(false);
+        this.setLocationRelativeTo(null); // Centers the frame
         this.setVisible(true);
         this.setFocusable(true);
 

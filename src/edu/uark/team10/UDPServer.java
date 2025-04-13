@@ -20,6 +20,7 @@ public class UDPServer extends Thread {
 
     // Game instanace
     private Game game = null;
+    private boolean run = true;
 
     // Network address to bind to. Cannot be changed after the server starts
     public static String networkAddress = "127.0.0.1";
@@ -27,6 +28,11 @@ public class UDPServer extends Thread {
     public UDPServer(Game game) {
         this.game = game;
         
+    }
+
+    public void stopServer()
+    {
+        this.run = false;
     }
 
     // This override method is called when start() is called
@@ -42,7 +48,7 @@ public class UDPServer extends Thread {
             // The buffer for the packet data
             byte[] receiveBuffer = null;
 
-            while (true) {
+            while (run) {
                 // Clear buffer for next packet
                 receiveBuffer = new byte[1024]; // Should be at the top in case loop continues early
 
