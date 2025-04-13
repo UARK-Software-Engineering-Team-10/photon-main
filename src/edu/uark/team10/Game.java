@@ -6,11 +6,17 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -21,6 +27,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.Timer;
 import javax.swing.border.Border;
 import javax.swing.border.EtchedBorder;
 
@@ -368,18 +375,69 @@ public class Game {
 
     /**
      * Returns an ordered map of codename to score.
-     * Smallest index is smallest score, biggest index is biggest score
+     * Smallest index is biggest score, biggest index is smallest score
      * 
      * @param teamNumber
-     * @return A map of codename to score in ascending order
+     * @return A map of codename to score in descending order
      */
-    public Map<String, Integer> getTeamPlayerScoresOrdered(int teamNumber)
+    public LinkedHashMap<String, Integer> getTeamPlayerScoresOrdered(int teamNumber)
     {
         this.checkValidity(teamNumber);
         
-        return this.getEquipmentIdsOnTeam(teamNumber).stream()
-            .sorted(Comparator.comparingInt(this::getPlayerScore)) // Sort players by score
-            .collect(Collectors.toMap(this::getCodename, this::getPlayerScore)); // Convert the array of equipment IDs to a map of codenames and scores
+        
+        LinkedHashMap<String, Integer> result = this.getEquipmentIdsOnTeam(teamNumber).stream()
+            .sorted(Comparator.comparingInt(this::getPlayerScore).reversed()) // Sort players by score
+            .collect(Collectors.toMap(this::getCodename, this::getPlayerScore, (oldValue, newValue) -> oldValue, LinkedHashMap::new)); // Convert the array of equipment IDs to an ordered map of codenames and scores
+
+        return result;
+        
+        /*
+        Map<String, Integer> result = new LinkedHashMap<>();
+        for (Entry<String, Integer> entry : a.entrySet())
+        {
+            result.put(entry.getKey(), entry.getValue());
+        }
+
+        return result;
+        */
+
+        
+        /*
+        Map<String, Integer> playersAndScores = this.getEquipmentIdsOnTeam(teamNumber).stream().collect(Collectors.toMap(this::getCodename, this::getPlayerScore));
+        List<Entry<String, Integer>> entries = new ArrayList<>(playersAndScores.entrySet());
+        entries.sort(Entry.comparingByValue());
+        */
+    }
+
+    private void flashJLabel(JLabel label)
+    {
+        Timer timer = new Timer(200, null);
+        timer.addActionListener(new ActionListener() {
+            private int counter = 0;
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Stop timer if the label isn't showing
+                if (!label.isShowing())
+                {
+                    timer.stop();
+                    return;
+                }
+                
+                if (counter % 2 == 0)
+                {
+                    label.setForeground(Color.WHITE);
+                } else
+                {
+                    label.setForeground(Color.YELLOW);
+                }
+
+                counter++;
+            }
+            
+        });
+
+        timer.start();
+
     }
 
     /**
@@ -498,7 +556,7 @@ public class Game {
         redTeamScoresPanel.setLayout(new BoxLayout(redTeamScoresPanel, BoxLayout.PAGE_AXIS));
 
         // Adds all the red team players and their scores to the players panel and scores panel
-        Map<String, Integer> redTeamPlayers = this.getTeamPlayerScoresOrdered(Game.RED_TEAM_NUMBER);
+        LinkedHashMap<String, Integer> redTeamPlayers = this.getTeamPlayerScoresOrdered(Game.RED_TEAM_NUMBER);
         redTeamPlayers.forEach((codename, score) -> {
             JLabel codenameLabel = new JLabel(codename);
             codenameLabel.setFont(font.deriveFont(12F));
@@ -511,6 +569,17 @@ public class Game {
             redTeamPlayersPanel.add(codenameLabel);
             redTeamScoresPanel.add(scoreLabel);
         });
+
+        JLabel redTeamTotalScoreLabel = new JLabel(String.valueOf(this.getTeamScore(Game.RED_TEAM_NUMBER)));
+        redTeamTotalScoreLabel.setFont(font.deriveFont(15F));
+        redTeamTotalScoreLabel.setForeground(Color.WHITE);
+        redTeamScoresPanel.add(redTeamTotalScoreLabel);
+
+        if (this.getLeadingTeam() == Game.RED_TEAM_NUMBER)
+        {
+            this.flashJLabel(redTeamTotalScoreLabel);
+        }
+
         redTeam.add(redTeamPlayersPanel, BorderLayout.WEST);
         redTeam.add(redTeamScoresPanel, BorderLayout.EAST);
 
@@ -541,7 +610,7 @@ public class Game {
         greenTeamScoresPanel.setLayout(new BoxLayout(greenTeamScoresPanel, BoxLayout.PAGE_AXIS));
 
         // Adds all the green team players and their scores to the players panel and scores panel
-        Map<String, Integer> greenTeamPlayers = this.getTeamPlayerScoresOrdered(Game.GREEN_TEAM_NUMBER);
+        LinkedHashMap<String, Integer> greenTeamPlayers = this.getTeamPlayerScoresOrdered(Game.GREEN_TEAM_NUMBER);
         greenTeamPlayers.forEach((codename, score) -> {
             JLabel codenameLabel = new JLabel(codename);
             codenameLabel.setFont(font.deriveFont(12F));
@@ -555,6 +624,17 @@ public class Game {
             greenTeamScoresPanel.add(scoreLabel);
 
         });
+
+        JLabel greenTeamTotalScoreLabel = new JLabel(String.valueOf(this.getTeamScore(Game.GREEN_TEAM_NUMBER)));
+        greenTeamTotalScoreLabel.setFont(font.deriveFont(15F));
+        greenTeamTotalScoreLabel.setForeground(Color.WHITE);
+        greenTeamScoresPanel.add(greenTeamTotalScoreLabel);
+
+        if (this.getLeadingTeam() == Game.GREEN_TEAM_NUMBER)
+        {
+            this.flashJLabel(greenTeamTotalScoreLabel);
+        }
+
         greenTeam.add(greenTeamPlayersPanel, BorderLayout.WEST);
         greenTeam.add(greenTeamScoresPanel, BorderLayout.EAST);
 
