@@ -118,6 +118,8 @@ public class Game {
 
         updateActionDisplay("Game start! (" + Game.GAME_LENGTH / 60.0 + " minutes)");
 
+        playBackgroundMusic("classes/edu/uark/team10/assets/game_sounds/Photon_Track_01.mp3");
+
         // End the game after gameLength + startCountdown seconds
         CompletableFuture<Void> gameTimerFuture = new CompletableFuture<Void>().completeOnTimeout(null, Game.GAME_LENGTH + Game.START_COUNTDOWN, TimeUnit.SECONDS);
         gameTimerFuture.whenComplete((none, exception) -> {
@@ -670,7 +672,6 @@ public class Game {
 
         actionDisplay.getContentPane().setBackground(new Color(28, 0, 64));
         actionDisplay.validate();
-        playBackgroundMusic("C:\\Users\\MCSha\\Downloads\\CSCE-35103\\photon-main\\src\\edu\\uark\\team10\\assets\\game_sounds\\Photon_Track_01.mp3");
     }
 
     public void playBackgroundMusic(String filePath) {// Initialize JavaFX environment
