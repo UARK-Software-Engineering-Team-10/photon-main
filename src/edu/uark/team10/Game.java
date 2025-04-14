@@ -75,6 +75,9 @@ public class Game {
 
     private UDPServer server = null;
 
+    private JLabel countdownTimerLabel;
+    private Timer countdownTimer;
+
     public static void setActionDisplay(Application actionDisplay)
     {
         Game.actionDisplay = actionDisplay;
@@ -115,6 +118,30 @@ public class Game {
         this.server.sendMessage("202", 1L, TimeUnit.SECONDS);
 
         this.startInstant = Instant.now();
+
+        countdownTimerLabel = new JLabel("06:00", JLabel.CENTER);
+        countdownTimerLabel.setFont(new Font("Conthrax SemBd", Font.PLAIN, 24));
+        countdownTimerLabel.setForeground(Color.YELLOW);
+        countdownTimerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        countdownTimer = new Timer(1000, new ActionListener() {
+            int countdown = (int) GAME_LENGTH;
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int minutes = countdown / 60;
+                int seconds = countdown % 60;
+                countdownTimerLabel.setText(String.format("%02d:%02d", minutes, seconds)); // Update the label
+
+                if (countdown <= 0) {
+                    ((Timer) e.getSource()).stop();
+                    JOptionPane.showMessageDialog(null, "Game Over!", "Game Status", JOptionPane.INFORMATION_MESSAGE);
+                }
+
+                countdown--;
+            }
+        });
+        countdownTimer.start();
 
         updateActionDisplay("Game start! (" + Game.GAME_LENGTH / 60.0 + " minutes)");
 
@@ -474,11 +501,6 @@ public class Game {
         logTopPanel.setLayout(new BoxLayout(logTopPanel, BoxLayout.Y_AXIS));
         logTopPanel.setBackground(new Color(28, 0, 64));
 
-        // Countdown timer
-        JLabel countdownTimerLabel = new JLabel("06:00", JLabel.CENTER);
-        countdownTimerLabel.setFont(font.deriveFont(24F));
-        countdownTimerLabel.setForeground(Color.YELLOW);
-        countdownTimerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         logTopPanel.add(countdownTimerLabel); // Add the timer to the top panel
 
         // Log header
@@ -497,26 +519,6 @@ public class Game {
         logMessagePanel.setBackground(new Color(28, 0, 64));
         logMessagePanel.setForeground(Color.WHITE);
         logPanel.add(logMessagePanel, BorderLayout.CENTER); // Add the log messages panel to the center
-
-        // Timer logic
-        Timer timer = new Timer(1000, new ActionListener() {
-            int countdown = (int) GAME_LENGTH;
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int minutes = countdown / 60;
-                int seconds = countdown % 60;
-                countdownTimerLabel.setText(String.format("%02d:%02d", minutes, seconds)); // Update the label
-
-                if (countdown <= 0) {
-                    ((Timer) e.getSource()).stop();
-                    JOptionPane.showMessageDialog(null, "Game Over!", "Game Status", JOptionPane.INFORMATION_MESSAGE);
-                }
-
-                countdown--;
-            }
-        });
-        timer.start();
 
         // Store the new action log in memory
         if (newActionMessage != null) {
