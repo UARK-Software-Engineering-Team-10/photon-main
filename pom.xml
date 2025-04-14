@@ -6,6 +6,7 @@
   <properties>
 		<java.version>17</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <javafx.module.path>C:/path/to/javafx-sdk-20/lib</javafx.module.path>
 	</properties>
 
   <groupId>edu.uark.team10</groupId>
@@ -80,6 +81,21 @@
         </executions>
       </plugin>
 
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.0.0</version>
+        <configuration>
+          <mainClass>edu.uark.team10.Main</mainClass>
+          <arguments>
+            <argument>--module-path</argument>
+            <argument>${javafx.module.path}</argument>
+            <argument>--add-modules</argument>
+            <argument>javafx.controls,javafx.media,javafx.swing</argument>
+          </arguments>
+        </configuration>
+      </plugin>
+
     </plugins>
   </build>
 
@@ -90,6 +106,27 @@
       <artifactId>postgresql</artifactId>
       <version>42.7.5</version>
       <scope>compile</scope>
+    </dependency>
+    
+    <!-- JavaFX Base -->
+    <dependency>
+        <groupId>org.openjfx</groupId>
+        <artifactId>javafx-base</artifactId>
+        <version>20</version> <!-- Use the version matching your JDK -->
+    </dependency>
+
+    <!-- JavaFX Media -->
+    <dependency>
+        <groupId>org.openjfx</groupId>
+        <artifactId>javafx-media</artifactId>
+        <version>20</version>
+    </dependency>
+
+    <!-- JavaFX Swing -->
+    <dependency>
+        <groupId>org.openjfx</groupId>
+        <artifactId>javafx-swing</artifactId>
+        <version>20</version>
     </dependency>
 
   </dependencies>

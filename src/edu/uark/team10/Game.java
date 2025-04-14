@@ -8,15 +8,12 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +29,9 @@ import javax.swing.border.Border;
 import javax.swing.border.EtchedBorder;
 
 import edu.uark.team10.table.PlayerEntryTable;
+import javafx.embed.swing.JFXPanel;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 
 /**
  * Represents a lazer tag game. Holds member variables for
@@ -460,13 +460,24 @@ public class Game {
         final Border etchedBorder = BorderFactory.createEtchedBorder(EtchedBorder.RAISED);
         final Border border = BorderFactory.createCompoundBorder(etchedBorder, marginBorder);
 
-        // Log
-        JPanel logPanel = new JPanel();
+        // Log panel
+        JPanel logPanel = new JPanel(new BorderLayout());
         logPanel.setPreferredSize(new Dimension(actionDisplay.getWidth() / 4, actionDisplay.getHeight()));
-        logPanel.setLayout(new BorderLayout());
         logPanel.setBackground(new Color(28, 0, 64));
         logPanel.setForeground(Color.WHITE);
         logPanel.setBorder(border);
+
+        // Top panel for timer and log header
+        JPanel logTopPanel = new JPanel();
+        logTopPanel.setLayout(new BoxLayout(logTopPanel, BoxLayout.Y_AXIS));
+        logTopPanel.setBackground(new Color(28, 0, 64));
+
+        // Countdown timer
+        JLabel countdownTimerLabel = new JLabel("06:00", JLabel.CENTER);
+        countdownTimerLabel.setFont(font.deriveFont(24F));
+        countdownTimerLabel.setForeground(Color.YELLOW);
+        countdownTimerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        logTopPanel.add(countdownTimerLabel); // Add the timer to the top panel
 
         // Log header
         JLabel logPanelHeader = new JLabel("Action Log");
@@ -474,39 +485,54 @@ public class Game {
         logPanelHeader.setForeground(Color.WHITE);
         logPanelHeader.setAlignmentX(Component.CENTER_ALIGNMENT);
         logPanelHeader.setBorder(marginBorder);
-        logPanel.add(logPanelHeader, BorderLayout.NORTH);
+        logTopPanel.add(logPanelHeader); // Add the log header below the timer
 
-        // Panel that holds the messages inside of log
+        logPanel.add(logTopPanel, BorderLayout.NORTH); // Add the top panel to the top of logPanel
+
+        // Panel for log messages
         JPanel logMessagePanel = new JPanel();
-        logMessagePanel.setLayout(new BoxLayout(logMessagePanel, BoxLayout.PAGE_AXIS));
+        logMessagePanel.setLayout(new BoxLayout(logMessagePanel, BoxLayout.Y_AXIS));
         logMessagePanel.setBackground(new Color(28, 0, 64));
         logMessagePanel.setForeground(Color.WHITE);
-        logPanel.add(logMessagePanel, BorderLayout.WEST);
+        logPanel.add(logMessagePanel, BorderLayout.CENTER); // Add the log messages panel to the center
+
+        // Timer logic
+        Timer timer = new Timer(1000, new ActionListener() {
+            int countdown = (int) GAME_LENGTH;
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int minutes = countdown / 60;
+                int seconds = countdown % 60;
+                countdownTimerLabel.setText(String.format("%02d:%02d", minutes, seconds)); // Update the label
+
+                if (countdown <= 0) {
+                    ((Timer) e.getSource()).stop();
+                    JOptionPane.showMessageDialog(null, "Game Over!", "Game Status", JOptionPane.INFORMATION_MESSAGE);
+                }
+
+                countdown--;
+            }
+        });
+        timer.start();
 
         // Store the new action log in memory
-        if (newActionMessage != null)
-        {
+        if (newActionMessage != null) {
             final int charLengthLimit = 26;
             Color messageColor = Color.WHITE;
 
             // Alternate colors for readability
-            if (!this.actionLog.isEmpty())
-            {
-                if (this.actionLog.get(this.actionLog.size() - 1).getForeground() == Color.WHITE)
-                {
+            if (!this.actionLog.isEmpty()) {
+                if (this.actionLog.get(this.actionLog.size() - 1).getForeground() == Color.WHITE) {
                     messageColor = Color.LIGHT_GRAY;
-
                 }
-
             }
 
             // Wrap long messages
-            for (int i = 0; i < Math.ceil(1.0 * newActionMessage.length() / charLengthLimit); i++)
-            {
+            for (int i = 0; i < Math.ceil(1.0 * newActionMessage.length() / charLengthLimit); i++) {
                 String messagePiece = newActionMessage.substring(i * charLengthLimit, Math.min(i * charLengthLimit + charLengthLimit, newActionMessage.length()));
 
-                if (i > 0)
-                {
+                if (i > 0) {
                     messagePiece = "..." + messagePiece;
                 }
 
@@ -516,17 +542,13 @@ public class Game {
                 actionMessage.setForeground(messageColor);
 
                 this.actionLog.add(actionMessage);
-
             }
-
         }
 
         final int logLengthLimit = 40;
         // Display the messages. Display the newest messages if the log gets too long
-        for (int i = Math.max(0, this.actionLog.size() - logLengthLimit); i < this.actionLog.size(); i++)
-        {
+        for (int i = Math.max(0, this.actionLog.size() - logLengthLimit); i < this.actionLog.size(); i++) {
             logMessagePanel.add(this.actionLog.get(i));
-
         }
 
         // Red team container for header, players, and scores
@@ -648,6 +670,28 @@ public class Game {
 
         actionDisplay.getContentPane().setBackground(new Color(28, 0, 64));
         actionDisplay.validate();
+        playBackgroundMusic("C:\\Users\\MCSha\\Downloads\\CSCE-35103\\photon-main\\src\\edu\\uark\\team10\\assets\\game_sounds\\Photon_Track_01.mp3");
     }
+
+    public void playBackgroundMusic(String filePath) {// Initialize JavaFX environment
+        new JFXPanel();
+
+            try {
+                // Convert the file path to a URI
+                String uri = new File(filePath).toURI().toString();
+                // Create a Media object and MediaPlayer
+                Media media = new Media(uri);
+                MediaPlayer mediaPlayer = new MediaPlayer(media);
+
+                // Set the media to loop continuously
+                mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+
+                // Play the media
+                mediaPlayer.play();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     
 }
+
