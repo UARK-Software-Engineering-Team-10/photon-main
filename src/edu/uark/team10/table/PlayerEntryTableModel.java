@@ -28,18 +28,14 @@ public class PlayerEntryTableModel extends AbstractTableModel
     private String[] columnNames = new String[] {"", "Player ID", "Codename", "Equipment ID"};
     private Object[][] rowData = new Object[maxPlayers][columnNames.length];
 
-    // Database and server references
+    // Database reference
     private final DB db = DB.get();
-    private UDPServer server = null;
 
     /**
      * Creates a new table model and sets the first column to have row numbers
-     * 
-     * @param server
      */
-    public PlayerEntryTableModel(UDPServer server)
+    public PlayerEntryTableModel()
     {
-        this.server = server;
 
         // Add row numbers to column 0 for looks
         for (int row = 0; row < rowData.length; row++)
@@ -264,7 +260,7 @@ public class PlayerEntryTableModel extends AbstractTableModel
                     this.fireTableCellUpdated(row, 3);
 
                     JOptionPane.showMessageDialog(null, "Added player: " + codename, "Player Added", JOptionPane.PLAIN_MESSAGE);
-                    this.server.sendMessage(equipmentId);
+                    UDPServer.sendMessage(equipmentId);
                 } catch (NumberFormatException e) {
                     equipmentId = null;
                     JOptionPane.showMessageDialog(null, "Please try again.", "Invalid Equipment ID", JOptionPane.ERROR_MESSAGE);

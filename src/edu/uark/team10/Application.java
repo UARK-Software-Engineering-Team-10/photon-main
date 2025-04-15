@@ -2,9 +2,7 @@ package edu.uark.team10;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.GraphicsEnvironment;
@@ -14,19 +12,14 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.awt.event.ContainerEvent;
-import java.awt.event.ContainerListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -39,9 +32,6 @@ import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.JLayeredPane;
-import javax.swing.border.Border;
-import javax.swing.border.EtchedBorder;
-
 import edu.uark.team10.table.PlayerEntryTable;
 
 /**
@@ -49,20 +39,36 @@ import edu.uark.team10.table.PlayerEntryTable;
  */
 public class Application extends JFrame { // JFrame lets us create windows
 
-    // Game and server instances
-    private Game game = null;
-    private UDPServer server = null;
+    private static Application singleton = null;
+
+    // Server and table instances
+    public Game game = null;
+    private PlayerEntryTable tableRedTeam = null;
+    private PlayerEntryTable tableGreenTeam = null;
 
     /**
      * Creates a new JFrame for the program.
      * 
-     * @param game
      * @param server
      */
-    public Application(Game game, UDPServer server)
+    public Application()
     {
-        this.game = game;
-        this.server = server;
+        try {
+            if (singleton != null)
+            {
+                throw new Exception("Error: Application cannot have more than one instance. Please use Application.getInstance()");
+            }
+        } catch (Exception e)
+        {
+            e.printStackTrace();
+            return;
+        }
+
+        this.game = new Game();
+        UDPServer.setGame(this.game);
+        // Create the red and green team tables
+        this.tableRedTeam = new PlayerEntryTable(new Color(122, 0, 0));
+        this.tableGreenTeam = new PlayerEntryTable(new Color(0, 122, 0));
 
         // Calculate size of window to be ~35% the width of the screen while maintaining exactly 4:3 aspect ratio
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
@@ -75,6 +81,7 @@ public class Application extends JFrame { // JFrame lets us create windows
         this.setSize(windowSize); // Resize here
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setResizable(false);
+        this.setLocationRelativeTo(null); // Centers the frame
         this.setVisible(true);
         this.setFocusable(true);
 
@@ -99,6 +106,16 @@ public class Application extends JFrame { // JFrame lets us create windows
 
         // Create the splash screen and add it to the screen
         splashScreen();
+    }
+
+    public static Application getInstance()
+    {
+        if (singleton == null)
+        {
+            singleton = new Application();
+        }
+
+        return singleton;
     }
 
     /**
@@ -136,8 +153,7 @@ public class Application extends JFrame { // JFrame lets us create windows
                         return;
                     }
 
-                    game.start(server, tableRedTeam, tableGreenTeam); // Start the game
-                    gameplayScreen(game);
+                    game.start(tableRedTeam, tableGreenTeam); // Start the game
                 });
                 
             }
@@ -179,7 +195,7 @@ public class Application extends JFrame { // JFrame lets us create windows
         changeIPNetwork.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {                                                                         // QUESTION_MESSAGE: Request user input for IP/Network
-                String newIpAddress = JOptionPane.showInputDialog(null, "Enter new IP Address:", "Change IP/Network: " + UDPServer.networkAddress, JOptionPane.QUESTION_MESSAGE);
+                String newIpAddress = JOptionPane.showInputDialog(null, "Enter new IP Address:", "Change IP/Network: " + UDPServer.getAddress(), JOptionPane.QUESTION_MESSAGE);
 
                 // May be null if user selects 'cancel'
                 if (newIpAddress == null) return;
@@ -187,7 +203,7 @@ public class Application extends JFrame { // JFrame lets us create windows
                 newIpAddress = newIpAddress.replaceAll("[^0-9.]", ""); // Only allow numbers and periods for ip addresses
 
                 if (newIpAddress != null && !newIpAddress.isEmpty()) { // Check if the input is not empty
-                    UDPServer.networkAddress = newIpAddress; // Change the static network address
+                    UDPServer.setAddress(newIpAddress); // Change the static network address
                     JOptionPane.showMessageDialog(null, "IP Address changed to: " + newIpAddress, "IP/Network Status", JOptionPane.INFORMATION_MESSAGE);
                 } else {
                     JOptionPane.showMessageDialog(null, "IP Address cannot be empty.", "Input Error", JOptionPane.ERROR_MESSAGE);
@@ -308,7 +324,7 @@ public class Application extends JFrame { // JFrame lets us create windows
     }
 
     // Changes the screen to the player entry screen
-    private void playerEntryScreen() {
+    public void playerEntryScreen() {
         /*
          * Removes all components (buttons, labels, ..)
          * Necessary when adding new components after using removeAll()
@@ -317,12 +333,14 @@ public class Application extends JFrame { // JFrame lets us create windows
         this.revalidate();
         this.repaint();
 
-        // Create the red and green team tables
-        PlayerEntryTable tableRedTeam = new PlayerEntryTable(this.server, new Color(122, 0, 0));
-        PlayerEntryTable tableGreenTeam = new PlayerEntryTable(this.server, new Color(0, 122, 0));
+        if (this.game.hasStarted())
+        {
+            this.game = new Game();
+            UDPServer.setGame(this.game);
+        }
 
         // Add the tables to a scroll pane
-        JScrollPane scrollPaneRedTeam = new JScrollPane(tableRedTeam) {
+        JScrollPane scrollPaneRedTeam = new JScrollPane(this.tableRedTeam) {
             @Override
             public Dimension getPreferredSize() {
                 // Override the size of the scroll pane to fit the exact size of the table
@@ -331,7 +349,7 @@ public class Application extends JFrame { // JFrame lets us create windows
             }
         };
 
-        JScrollPane scrollPaneGreenTeam = new JScrollPane(tableGreenTeam) {
+        JScrollPane scrollPaneGreenTeam = new JScrollPane(this.tableGreenTeam) {
             @Override
             public Dimension getPreferredSize() {
                 // Override the size of the scroll pane to fit the exact size of the table
@@ -348,7 +366,7 @@ public class Application extends JFrame { // JFrame lets us create windows
         tablePanel.setBackground(new Color(28, 0, 64));
 
         // Create and add the menu bar for game settings
-        this.setJMenuBar(getMenuBar(tableRedTeam, tableGreenTeam));
+        this.setJMenuBar(getMenuBar(this.tableRedTeam, this.tableGreenTeam));
 
         // Add the table panel to this frame
         this.setLayout(new BorderLayout());
@@ -362,7 +380,7 @@ public class Application extends JFrame { // JFrame lets us create windows
         AppKeyDispatcher.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                System.out.println("Key Pressed: " + e.getKeyCode()); // Debugging, needs to check focus after entering player info
+                //System.out.println("Key Pressed: " + e.getKeyCode()); // Debugging, needs to check focus after entering player info
                 if (e.getKeyCode() == KeyEvent.VK_F5) {
                     JOptionPane.showMessageDialog(null, "Game started!", "Game Status", JOptionPane.INFORMATION_MESSAGE);
                     countdown((int) Game.START_COUNTDOWN).whenComplete((value, exception) -> {
@@ -372,8 +390,7 @@ public class Application extends JFrame { // JFrame lets us create windows
                             return;
                         }
     
-                        game.start(server, tableRedTeam, tableGreenTeam); // Start the game
-                        gameplayScreen(game);
+                        game.start(tableRedTeam, tableGreenTeam); // Start the game
                     });
                 } else if (e.getKeyCode() == KeyEvent.VK_F12)
                 {
@@ -382,7 +399,7 @@ public class Application extends JFrame { // JFrame lets us create windows
                     tableGreenTeam.clear();
                 }
             }
-        }, this.getRootPane());
+        });
     }
     
     private CompletableFuture<Void> countdown(int startFrom) {
@@ -390,7 +407,7 @@ public class Application extends JFrame { // JFrame lets us create windows
         this.getContentPane().removeAll();
         this.setJMenuBar(null);
         this.revalidate();
-        this.repaint();      
+        this.repaint();
         
         final JPanel countdownPanel = new JPanel(null);
         countdownPanel.setBackground(new Color(28, 0, 64));
@@ -425,9 +442,16 @@ public class Application extends JFrame { // JFrame lets us create windows
         // Using a thread for countdown
         Thread countdownThread = new Thread(() -> {
             int count = startFrom;
+            boolean isMediaStarted = false;
             try {
                 while (count > 0) {
                     final int currentCount = count;
+
+                    if (count <= 17 && !isMediaStarted)
+                    {
+                        this.game.playBackgroundMusic("edu/uark/team10/assets/game_sounds/Photon_Track_01.mp3", false);
+                        isMediaStarted = true;
+                    }
 
                     SwingUtilities.invokeLater(() -> {
                         countdownLabel.setText(String.valueOf(currentCount));
@@ -452,158 +476,6 @@ public class Application extends JFrame { // JFrame lets us create windows
         countdownThread.start();
 
         return future;
-    }
-
-    /**
-     * Creates the gameplay screen and displays it.
-     * 
-     * @param game A game instance
-     */
-    private void gameplayScreen(Game game)
-    {
-        this.getContentPane().removeAll();
-        this.revalidate();
-        this.repaint();
-
-        final Font font = new Font("Conthrax SemBd", Font.PLAIN, 18);
-
-        // Borders
-        final Border marginBorder = BorderFactory.createEmptyBorder(10, 10, 10, 10);
-        final Border etchedBorder = BorderFactory.createEtchedBorder(EtchedBorder.RAISED);
-        final Border border = BorderFactory.createCompoundBorder(etchedBorder, marginBorder);
-
-        JPanel logPanel = new JPanel();
-        logPanel.setPreferredSize(new Dimension(this.getWidth() / 4, this.getHeight()));
-        logPanel.setLayout(new BoxLayout(logPanel, BoxLayout.PAGE_AXIS));
-        logPanel.setBackground(new Color(28, 0, 64));
-        logPanel.setBorder(border);
-
-        JLabel logPanelHeader = new JLabel("Action Log");
-        logPanelHeader.setFont(font);
-        logPanelHeader.setForeground(Color.WHITE);
-        logPanelHeader.setAlignmentX(Component.CENTER_ALIGNMENT);
-        logPanelHeader.setBorder(marginBorder);
-        logPanel.add(logPanelHeader);
-
-        // TODO add action log
-        // Listens for added/removed components for the action log container.
-        logPanel.addContainerListener(new ContainerListener() {
-            @Override
-            public void componentAdded(ContainerEvent e) {
-                // Removes log entries to make room for new log entries
-                SwingUtilities.invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        Component[] components = logPanel.getComponents();
-        
-                        if (components == null) return;
-                        if (components.length < 15) return;
-        
-                        for (int i = 15; i < components.length; i++)
-                        {
-                            logPanel.remove(components[i]);
-                        }
-        
-        
-                    }
-                    
-                });
-            }
-            @Override
-            public void componentRemoved(ContainerEvent e) {
-                //validate(); // might not need--will need testing
-            }
-            
-        });
-
-        JPanel redTeam = new JPanel(new BorderLayout());
-        redTeam.setPreferredSize(new Dimension(this.getWidth() / 3, this.getHeight()));
-        redTeam.setBackground(new Color(122, 0, 0));
-        redTeam.setBorder(border);
-        
-        JLabel redTeamHeader = new JLabel("Red Team");
-        redTeamHeader.setFont(font);
-        redTeamHeader.setForeground(Color.WHITE);
-        redTeamHeader.setHorizontalAlignment(JLabel.CENTER);
-        redTeamHeader.setBorder(marginBorder);
-        redTeam.add(redTeamHeader, BorderLayout.NORTH);
-
-        JPanel redTeamPlayersPanel = new JPanel();
-        redTeamPlayersPanel.setBackground(new Color(122, 0, 0));
-        redTeamPlayersPanel.setForeground(Color.WHITE);
-        redTeamPlayersPanel.setLayout(new BoxLayout(redTeamPlayersPanel, BoxLayout.PAGE_AXIS));
-
-        JPanel redTeamScoresPanel = new JPanel();
-        redTeamScoresPanel.setBackground(new Color(122, 0, 0));
-        redTeamScoresPanel.setForeground(Color.WHITE);
-        redTeamScoresPanel.setLayout(new BoxLayout(redTeamScoresPanel, BoxLayout.PAGE_AXIS));
-
-        // Adds all the red team players and their scores to the panel
-        Map<String, Integer> redTeamPlayers = game.getTeamPlayerScoresOrdered(Game.RED_TEAM_NUMBER);
-        redTeamPlayers.forEach((codename, score) -> {
-            JLabel codenameLabel = new JLabel(codename);
-            codenameLabel.setFont(font.deriveFont(14F));
-            codenameLabel.setForeground(Color.WHITE);
-
-            JLabel scoreLabel = new JLabel(String.valueOf(score));
-            scoreLabel.setFont(font.deriveFont(14F));
-            scoreLabel.setForeground(Color.WHITE);
-
-            redTeamPlayersPanel.add(codenameLabel);
-            redTeamScoresPanel.add(scoreLabel);
-        });
-        redTeam.add(redTeamPlayersPanel, BorderLayout.WEST);
-        redTeam.add(redTeamScoresPanel, BorderLayout.EAST);
-
-        JPanel greenTeam = new JPanel(new BorderLayout());
-        greenTeam.setPreferredSize(new Dimension(this.getWidth() / 3, this.getHeight()));
-        greenTeam.setBackground(new Color(0, 122, 0));
-        greenTeam.setBorder(border);
-
-        JLabel greenTeamHeader = new JLabel("Green Team");
-        greenTeamHeader.setFont(font);
-        greenTeamHeader.setForeground(Color.WHITE);
-        greenTeamHeader.setHorizontalAlignment(JLabel.CENTER);
-        greenTeamHeader.setBorder(marginBorder);
-        greenTeam.add(greenTeamHeader, BorderLayout.NORTH);
-
-        JPanel greenTeamPlayersPanel = new JPanel();
-        greenTeamPlayersPanel.setBackground(new Color(0, 122, 0));
-        greenTeamPlayersPanel.setForeground(Color.WHITE);
-        greenTeamPlayersPanel.setLayout(new BoxLayout(greenTeamPlayersPanel, BoxLayout.PAGE_AXIS));
-
-        JPanel greenTeamScoresPanel = new JPanel();
-        greenTeamScoresPanel.setBackground(new Color(0, 122, 0));
-        greenTeamScoresPanel.setForeground(Color.WHITE);
-        greenTeamScoresPanel.setLayout(new BoxLayout(greenTeamScoresPanel, BoxLayout.PAGE_AXIS));
-
-        // Adds all the green team players and their scores to the panel
-        Map<String, Integer> greenTeamPlayers = game.getTeamPlayerScoresOrdered(Game.GREEN_TEAM_NUMBER);
-        greenTeamPlayers.forEach((codename, score) -> {
-            JLabel codenameLabel = new JLabel(codename);
-            codenameLabel.setFont(font.deriveFont(14F));
-            codenameLabel.setForeground(Color.WHITE);
-
-            JLabel scoreLabel = new JLabel(String.valueOf(score));
-            scoreLabel.setFont(font.deriveFont(14F));
-            scoreLabel.setForeground(Color.WHITE);
-
-            greenTeamPlayersPanel.add(codenameLabel);
-            greenTeamScoresPanel.add(scoreLabel);
-
-        });
-        greenTeam.add(greenTeamPlayersPanel, BorderLayout.WEST);
-        greenTeam.add(greenTeamScoresPanel, BorderLayout.EAST);
-
-        JPanel panel = new JPanel(new FlowLayout());
-        panel.add(redTeam);
-        panel.add(logPanel);
-        panel.add(greenTeam);
-
-        this.add(panel);
-
-        this.getContentPane().setBackground(new Color(28, 0, 64));
-        this.validate();
     }
 
 }
