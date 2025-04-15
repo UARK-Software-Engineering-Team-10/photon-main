@@ -4,16 +4,14 @@ import java.awt.Color;
 
 import javax.swing.JTable;
 
-import edu.uark.team10.UDPServer;
-
 /**
  * A custom JTable class for the player entry screen
  */
 public class PlayerEntryTable extends JTable {
 
-    public PlayerEntryTable(UDPServer server, Color teamColor)
+    public PlayerEntryTable(Color teamColor)
     {
-        this.setModel(new PlayerEntryTableModel(server));
+        this.setModel(new PlayerEntryTableModel());
         this.setTableHeader(new PlayerEntryTableHeader(this.getColumnModel()));
         this.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         this.setRowSelectionAllowed(false);

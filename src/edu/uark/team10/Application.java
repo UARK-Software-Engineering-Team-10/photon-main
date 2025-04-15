@@ -39,20 +39,36 @@ import edu.uark.team10.table.PlayerEntryTable;
  */
 public class Application extends JFrame { // JFrame lets us create windows
 
-    // Game and server instances
-    private Game game = null;
-    private UDPServer server = null;
+    private static Application singleton = null;
+
+    // Server and table instances
+    public Game game = null;
+    private PlayerEntryTable tableRedTeam = null;
+    private PlayerEntryTable tableGreenTeam = null;
 
     /**
      * Creates a new JFrame for the program.
      * 
-     * @param game
      * @param server
      */
-    public Application(Game game, UDPServer server)
+    public Application()
     {
-        this.game = game;
-        this.server = server;
+        try {
+            if (singleton != null)
+            {
+                throw new Exception("Error: Application cannot have more than one instance. Please use Application.getInstance()");
+            }
+        } catch (Exception e)
+        {
+            e.printStackTrace();
+            return;
+        }
+
+        this.game = new Game();
+        UDPServer.setGame(this.game);
+        // Create the red and green team tables
+        this.tableRedTeam = new PlayerEntryTable(new Color(122, 0, 0));
+        this.tableGreenTeam = new PlayerEntryTable(new Color(0, 122, 0));
 
         // Calculate size of window to be ~35% the width of the screen while maintaining exactly 4:3 aspect ratio
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
@@ -92,6 +108,16 @@ public class Application extends JFrame { // JFrame lets us create windows
         splashScreen();
     }
 
+    public static Application getInstance()
+    {
+        if (singleton == null)
+        {
+            singleton = new Application();
+        }
+
+        return singleton;
+    }
+
     /**
      * Creates a menu bar
      * Includes options for starting the game, clearing player entries, changing
@@ -127,7 +153,7 @@ public class Application extends JFrame { // JFrame lets us create windows
                         return;
                     }
 
-                    game.start(server, tableRedTeam, tableGreenTeam); // Start the game
+                    game.start(tableRedTeam, tableGreenTeam); // Start the game
                 });
                 
             }
@@ -169,7 +195,7 @@ public class Application extends JFrame { // JFrame lets us create windows
         changeIPNetwork.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {                                                                         // QUESTION_MESSAGE: Request user input for IP/Network
-                String newIpAddress = JOptionPane.showInputDialog(null, "Enter new IP Address:", "Change IP/Network: " + UDPServer.networkAddress, JOptionPane.QUESTION_MESSAGE);
+                String newIpAddress = JOptionPane.showInputDialog(null, "Enter new IP Address:", "Change IP/Network: " + UDPServer.getAddress(), JOptionPane.QUESTION_MESSAGE);
 
                 // May be null if user selects 'cancel'
                 if (newIpAddress == null) return;
@@ -177,7 +203,7 @@ public class Application extends JFrame { // JFrame lets us create windows
                 newIpAddress = newIpAddress.replaceAll("[^0-9.]", ""); // Only allow numbers and periods for ip addresses
 
                 if (newIpAddress != null && !newIpAddress.isEmpty()) { // Check if the input is not empty
-                    UDPServer.networkAddress = newIpAddress; // Change the static network address
+                    UDPServer.setAddress(newIpAddress); // Change the static network address
                     JOptionPane.showMessageDialog(null, "IP Address changed to: " + newIpAddress, "IP/Network Status", JOptionPane.INFORMATION_MESSAGE);
                 } else {
                     JOptionPane.showMessageDialog(null, "IP Address cannot be empty.", "Input Error", JOptionPane.ERROR_MESSAGE);
@@ -298,7 +324,7 @@ public class Application extends JFrame { // JFrame lets us create windows
     }
 
     // Changes the screen to the player entry screen
-    private void playerEntryScreen() {
+    public void playerEntryScreen() {
         /*
          * Removes all components (buttons, labels, ..)
          * Necessary when adding new components after using removeAll()
@@ -307,12 +333,14 @@ public class Application extends JFrame { // JFrame lets us create windows
         this.revalidate();
         this.repaint();
 
-        // Create the red and green team tables
-        PlayerEntryTable tableRedTeam = new PlayerEntryTable(this.server, new Color(122, 0, 0));
-        PlayerEntryTable tableGreenTeam = new PlayerEntryTable(this.server, new Color(0, 122, 0));
+        if (this.game.hasStarted())
+        {
+            this.game = new Game();
+            UDPServer.setGame(this.game);
+        }
 
         // Add the tables to a scroll pane
-        JScrollPane scrollPaneRedTeam = new JScrollPane(tableRedTeam) {
+        JScrollPane scrollPaneRedTeam = new JScrollPane(this.tableRedTeam) {
             @Override
             public Dimension getPreferredSize() {
                 // Override the size of the scroll pane to fit the exact size of the table
@@ -321,7 +349,7 @@ public class Application extends JFrame { // JFrame lets us create windows
             }
         };
 
-        JScrollPane scrollPaneGreenTeam = new JScrollPane(tableGreenTeam) {
+        JScrollPane scrollPaneGreenTeam = new JScrollPane(this.tableGreenTeam) {
             @Override
             public Dimension getPreferredSize() {
                 // Override the size of the scroll pane to fit the exact size of the table
@@ -338,7 +366,7 @@ public class Application extends JFrame { // JFrame lets us create windows
         tablePanel.setBackground(new Color(28, 0, 64));
 
         // Create and add the menu bar for game settings
-        this.setJMenuBar(getMenuBar(tableRedTeam, tableGreenTeam));
+        this.setJMenuBar(getMenuBar(this.tableRedTeam, this.tableGreenTeam));
 
         // Add the table panel to this frame
         this.setLayout(new BorderLayout());
@@ -362,7 +390,7 @@ public class Application extends JFrame { // JFrame lets us create windows
                             return;
                         }
     
-                        game.start(server, tableRedTeam, tableGreenTeam); // Start the game
+                        game.start(tableRedTeam, tableGreenTeam); // Start the game
                     });
                 } else if (e.getKeyCode() == KeyEvent.VK_F12)
                 {
@@ -371,7 +399,7 @@ public class Application extends JFrame { // JFrame lets us create windows
                     tableGreenTeam.clear();
                 }
             }
-        }, this.getRootPane());
+        });
     }
     
     private CompletableFuture<Void> countdown(int startFrom) {
@@ -379,7 +407,7 @@ public class Application extends JFrame { // JFrame lets us create windows
         this.getContentPane().removeAll();
         this.setJMenuBar(null);
         this.revalidate();
-        this.repaint();      
+        this.repaint();
         
         final JPanel countdownPanel = new JPanel(null);
         countdownPanel.setBackground(new Color(28, 0, 64));
@@ -414,9 +442,16 @@ public class Application extends JFrame { // JFrame lets us create windows
         // Using a thread for countdown
         Thread countdownThread = new Thread(() -> {
             int count = startFrom;
+            boolean isMediaStarted = false;
             try {
                 while (count > 0) {
                     final int currentCount = count;
+
+                    if (count <= 17 && !isMediaStarted)
+                    {
+                        this.game.playBackgroundMusic("edu/uark/team10/assets/game_sounds/Photon_Track_01.mp3", false);
+                        isMediaStarted = true;
+                    }
 
                     SwingUtilities.invokeLater(() -> {
                         countdownLabel.setText(String.valueOf(currentCount));

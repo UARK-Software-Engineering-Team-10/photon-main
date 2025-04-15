@@ -8,7 +8,6 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -32,6 +31,7 @@ import edu.uark.team10.table.PlayerEntryTable;
 import javafx.embed.swing.JFXPanel;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
+import javafx.util.Duration;
 
 /**
  * Represents a lazer tag game. Holds member variables for
@@ -50,8 +50,6 @@ public class Game {
     public static long GAME_LENGTH = 360L; // default 6 minutes
 
     public static boolean isTestingMode = false;
-
-    private static Application actionDisplay = null;
 
     // Used for timestamps on action log
     public Instant startInstant = null;
@@ -73,53 +71,39 @@ public class Game {
     private boolean isGameStart = false;
     private boolean isGameEnd = false;
 
-    private UDPServer server = null;
-
     private JLabel countdownTimerLabel;
     private Timer countdownTimer;
 
-    public static void setActionDisplay(Application actionDisplay)
+    public Game()
     {
-        Game.actionDisplay = actionDisplay;
+        this.playBackgroundMusic("edu/uark/team10/assets/game_sounds/Photon_Track_Loop.mp3", true);
     }
 
     /**
      * Start the game. Also starts the UDP server.
      * This method can only be called once per game instance.
      * 
-     * @param server
      * @param tableRedTeam
      * @param tableGreenTeam
      */
-    public void start(UDPServer server, PlayerEntryTable tableRedTeam, PlayerEntryTable tableGreenTeam)
+    public void start(PlayerEntryTable tableRedTeam, PlayerEntryTable tableGreenTeam)
     {
         if (this.isGameStart) return; // Only allow this method to be called once
 
-        try {
-            if (Game.actionDisplay == null)
-            {
-                throw new Exception("Game error: action display not set.");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("Running game without display.");
-        }
-
-        this.server = server;
         this.isGameStart = true;
 
         this.addTeamPlayers(tableRedTeam, Game.RED_TEAM_NUMBER);
         this.addTeamPlayers(tableGreenTeam, Game.GREEN_TEAM_NUMBER);
 
         // Start the server
-        this.server.start(); // Server extends Thread. Threads can only be started one time
+        UDPServer.getInstance().start(); // Server extends Thread. Threads can only be started one time
 
         // Wait a second to make sure the server has started first
-        this.server.sendMessage("202", 1L, TimeUnit.SECONDS);
+        UDPServer.sendMessage("202", 1L, TimeUnit.SECONDS);
 
         this.startInstant = Instant.now();
 
-        countdownTimerLabel = new JLabel("06:00", JLabel.CENTER);
+        countdownTimerLabel = new JLabel(String.format("%02d:%02d", (int) GAME_LENGTH / 60, (int) GAME_LENGTH % 60), JLabel.CENTER);
         countdownTimerLabel.setFont(new Font("Conthrax SemBd", Font.PLAIN, 24));
         countdownTimerLabel.setForeground(Color.YELLOW);
         countdownTimerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -135,7 +119,7 @@ public class Game {
 
                 if (countdown <= 0) {
                     ((Timer) e.getSource()).stop();
-                    JOptionPane.showMessageDialog(null, "Game Over!", "Game Status", JOptionPane.INFORMATION_MESSAGE);
+                    //JOptionPane.showMessageDialog(null, "Game Over!", "Game Status", JOptionPane.INFORMATION_MESSAGE);
                 }
 
                 countdown--;
@@ -144,8 +128,6 @@ public class Game {
         countdownTimer.start();
 
         updateActionDisplay("Game start! (" + Game.GAME_LENGTH / 60.0 + " minutes)");
-
-        playBackgroundMusic("classes/edu/uark/team10/assets/game_sounds/Photon_Track_01.mp3");
 
         // End the game after gameLength + startCountdown seconds
         CompletableFuture<Void> gameTimerFuture = new CompletableFuture<Void>().completeOnTimeout(null, Game.GAME_LENGTH + Game.START_COUNTDOWN, TimeUnit.SECONDS);
@@ -172,9 +154,9 @@ public class Game {
         this.isGameEnd = true;
 
         // End game code
-        this.server.sendMessage("221"); // Send 3 times according to requirements
-        this.server.sendMessage("221");
-        this.server.sendMessage("221");
+        UDPServer.sendMessage("221"); // Send 3 times according to requirements
+        UDPServer.sendMessage("221");
+        UDPServer.sendMessage("221");
 
         // End game code (221) packet takes time to be received
         new CompletableFuture<Void>().completeOnTimeout(null, 1, TimeUnit.SECONDS)
@@ -189,15 +171,17 @@ public class Game {
                 JOptionPane.showMessageDialog(null, "Click 'OK' to start a new game.", "The game has ended.", JOptionPane.INFORMATION_MESSAGE);
                 
                 // Stop the server, dispose the old display, and create a new game
-                this.server.stopServer();
-                Game.actionDisplay.dispose();
-                Game game = new Game();
-                UDPServer server = new UDPServer(game);
-                Application application = new Application(game, server);
-                Game.setActionDisplay(application);
+                UDPServer.stopServer();
+                AppKeyDispatcher.clearKeyActions();
+                Application.getInstance().playerEntryScreen();
 
             });
 
+    }
+
+    public boolean hasStarted()
+    {
+        return this.isGameStart;
     }
 
     /**
@@ -419,23 +403,6 @@ public class Game {
             .collect(Collectors.toMap(this::getCodename, this::getPlayerScore, (oldValue, newValue) -> oldValue, LinkedHashMap::new)); // Convert the array of equipment IDs to an ordered map of codenames and scores
 
         return result;
-        
-        /*
-        Map<String, Integer> result = new LinkedHashMap<>();
-        for (Entry<String, Integer> entry : a.entrySet())
-        {
-            result.put(entry.getKey(), entry.getValue());
-        }
-
-        return result;
-        */
-
-        
-        /*
-        Map<String, Integer> playersAndScores = this.getEquipmentIdsOnTeam(teamNumber).stream().collect(Collectors.toMap(this::getCodename, this::getPlayerScore));
-        List<Entry<String, Integer>> entries = new ArrayList<>(playersAndScores.entrySet());
-        entries.sort(Entry.comparingByValue());
-        */
     }
 
     private void flashJLabel(JLabel label)
@@ -476,7 +443,7 @@ public class Game {
      */
     public void updateActionDisplay(String newActionMessage)
     {
-        if (actionDisplay == null) return;
+        final Application actionDisplay = Application.getInstance();
 
         actionDisplay.getContentPane().removeAll();
         actionDisplay.revalidate();
@@ -549,7 +516,7 @@ public class Game {
             }
         }
 
-        final int logLengthLimit = 40;
+        final int logLengthLimit = 38;
         // Display the messages. Display the newest messages if the log gets too long
         for (int i = Math.max(0, this.actionLog.size() - logLengthLimit); i < this.actionLog.size(); i++) {
             logMessagePanel.add(this.actionLog.get(i));
@@ -676,25 +643,44 @@ public class Game {
         actionDisplay.validate();
     }
 
-    public void playBackgroundMusic(String filePath) {// Initialize JavaFX environment
-        new JFXPanel();
+    // Needed so garbage collector doesn't destroy it (???)
+    // The media stops playing otherwise
+    private static MediaPlayer mediaPlayer = null;
 
-            try {
-                // Convert the file path to a URI
-                String uri = new File(filePath).toURI().toString();
-                // Create a Media object and MediaPlayer
-                Media media = new Media(uri);
-                MediaPlayer mediaPlayer = new MediaPlayer(media);
+    public void playBackgroundMusic(String filePath, boolean loop) {
+        new JFXPanel(); // Initialize JavaFX environment
 
-                // Set the media to loop continuously
-                mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
-
-                // Play the media
-                mediaPlayer.play();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        if (mediaPlayer != null)
+        {
+            mediaPlayer.stop();
         }
+
+        try {
+            // Convert the file path to a URI
+            String uri = getClass().getClassLoader().getResource(filePath).toURI().toString();
+            // Create a Media object and MediaPlayer
+            Media media = new Media(uri);
+            mediaPlayer = new MediaPlayer(media);
+
+            if (loop)
+            {
+                // Set the media to loop until game end
+                mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+            } else
+            {
+                // Set the media to loop until game end
+                mediaPlayer.setStartTime(Duration.ZERO);
+                mediaPlayer.setStopTime(Duration.seconds(Game.START_COUNTDOWN + Game.GAME_LENGTH + 10));
+            }
+
+            
+
+            // Play the media
+            mediaPlayer.play();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
     
 }
-
