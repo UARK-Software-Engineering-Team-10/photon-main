@@ -23,6 +23,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.border.Border;
 import javax.swing.border.EtchedBorder;
@@ -436,6 +437,8 @@ public class Game {
 
     }
 
+
+
     /**
      * Draws and updates the action display with the current players, scores, and action messages
      * 
@@ -443,204 +446,212 @@ public class Game {
      */
     public void updateActionDisplay(String newActionMessage)
     {
-        final Application actionDisplay = Application.getInstance();
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                final Application actionDisplay = Application.getInstance();
 
-        actionDisplay.getContentPane().removeAll();
-        actionDisplay.revalidate();
-        actionDisplay.repaint();
+                actionDisplay.getContentPane().removeAll();
+                actionDisplay.revalidate();
+                actionDisplay.repaint();
 
-        final Font font = new Font("Conthrax SemBd", Font.PLAIN, 18);
+                final Font font = new Font("Conthrax SemBd", Font.PLAIN, 18);
 
-        // Borders
-        final Border marginBorder = BorderFactory.createEmptyBorder(10, 10, 10, 10);
-        final Border etchedBorder = BorderFactory.createEtchedBorder(EtchedBorder.RAISED);
-        final Border border = BorderFactory.createCompoundBorder(etchedBorder, marginBorder);
+                // Borders
+                final Border marginBorder = BorderFactory.createEmptyBorder(10, 10, 10, 10);
+                final Border etchedBorder = BorderFactory.createEtchedBorder(EtchedBorder.RAISED);
+                final Border border = BorderFactory.createCompoundBorder(etchedBorder, marginBorder);
 
-        // Log panel
-        JPanel logPanel = new JPanel(new BorderLayout());
-        logPanel.setPreferredSize(new Dimension(actionDisplay.getWidth() / 4, actionDisplay.getHeight()));
-        logPanel.setBackground(new Color(28, 0, 64));
-        logPanel.setForeground(Color.WHITE);
-        logPanel.setBorder(border);
+                // Log panel
+                JPanel logPanel = new JPanel(new BorderLayout());
+                logPanel.setPreferredSize(new Dimension(actionDisplay.getWidth() / 4, actionDisplay.getHeight()));
+                logPanel.setBackground(new Color(28, 0, 64));
+                logPanel.setForeground(Color.WHITE);
+                logPanel.setBorder(border);
 
-        // Top panel for timer and log header
-        JPanel logTopPanel = new JPanel();
-        logTopPanel.setLayout(new BoxLayout(logTopPanel, BoxLayout.Y_AXIS));
-        logTopPanel.setBackground(new Color(28, 0, 64));
+                // Top panel for timer and log header
+                JPanel logTopPanel = new JPanel();
+                logTopPanel.setLayout(new BoxLayout(logTopPanel, BoxLayout.Y_AXIS));
+                logTopPanel.setBackground(new Color(28, 0, 64));
 
-        logTopPanel.add(countdownTimerLabel); // Add the timer to the top panel
+                logTopPanel.add(countdownTimerLabel); // Add the timer to the top panel
 
-        // Log header
-        JLabel logPanelHeader = new JLabel("Action Log");
-        logPanelHeader.setFont(font);
-        logPanelHeader.setForeground(Color.WHITE);
-        logPanelHeader.setAlignmentX(Component.CENTER_ALIGNMENT);
-        logPanelHeader.setBorder(marginBorder);
-        logTopPanel.add(logPanelHeader); // Add the log header below the timer
+                // Log header
+                JLabel logPanelHeader = new JLabel("Action Log");
+                logPanelHeader.setFont(font);
+                logPanelHeader.setForeground(Color.WHITE);
+                logPanelHeader.setAlignmentX(Component.CENTER_ALIGNMENT);
+                logPanelHeader.setBorder(marginBorder);
+                logTopPanel.add(logPanelHeader); // Add the log header below the timer
 
-        logPanel.add(logTopPanel, BorderLayout.NORTH); // Add the top panel to the top of logPanel
+                logPanel.add(logTopPanel, BorderLayout.NORTH); // Add the top panel to the top of logPanel
 
-        // Panel for log messages
-        JPanel logMessagePanel = new JPanel();
-        logMessagePanel.setLayout(new BoxLayout(logMessagePanel, BoxLayout.Y_AXIS));
-        logMessagePanel.setBackground(new Color(28, 0, 64));
-        logMessagePanel.setForeground(Color.WHITE);
-        logPanel.add(logMessagePanel, BorderLayout.CENTER); // Add the log messages panel to the center
+                // Panel for log messages
+                JPanel logMessagePanel = new JPanel();
+                logMessagePanel.setLayout(new BoxLayout(logMessagePanel, BoxLayout.Y_AXIS));
+                logMessagePanel.setBackground(new Color(28, 0, 64));
+                logMessagePanel.setForeground(Color.WHITE);
+                logPanel.add(logMessagePanel, BorderLayout.CENTER); // Add the log messages panel to the center
 
-        // Store the new action log in memory
-        if (newActionMessage != null) {
-            final int charLengthLimit = 26;
-            Color messageColor = Color.WHITE;
+                // Store the new action log in memory
+                if (newActionMessage != null) {
+                    final int charLengthLimit = 26;
+                    Color messageColor = Color.WHITE;
 
-            // Alternate colors for readability
-            if (!this.actionLog.isEmpty()) {
-                if (this.actionLog.get(this.actionLog.size() - 1).getForeground() == Color.WHITE) {
-                    messageColor = Color.LIGHT_GRAY;
+                    // Alternate colors for readability
+                    if (!actionLog.isEmpty()) {
+                        if (actionLog.get(actionLog.size() - 1).getForeground() == Color.WHITE) {
+                            messageColor = Color.LIGHT_GRAY;
+                        }
+                    }
+
+                    // Wrap long messages
+                    for (int i = 0; i < Math.ceil(1.0 * newActionMessage.length() / charLengthLimit); i++) {
+                        String messagePiece = newActionMessage.substring(i * charLengthLimit, Math.min(i * charLengthLimit + charLengthLimit, newActionMessage.length()));
+
+                        if (i > 0) {
+                            messagePiece = "..." + messagePiece;
+                        }
+
+                        JLabel actionMessage = new JLabel(messagePiece);
+                        actionMessage.setFont(font.deriveFont(11F));
+                        actionMessage.setHorizontalAlignment(JLabel.LEFT);
+                        actionMessage.setForeground(messageColor);
+
+                        actionLog.add(actionMessage);
+                    }
                 }
+
+                final int logLengthLimit = 38;
+                // Display the messages. Display the newest messages if the log gets too long
+                for (int i = Math.max(0, actionLog.size() - logLengthLimit); i < actionLog.size(); i++) {
+                    logMessagePanel.add(actionLog.get(i));
+                }
+
+                // Red team container for header, players, and scores
+                JPanel redTeam = new JPanel(new BorderLayout());
+                redTeam.setPreferredSize(new Dimension(actionDisplay.getWidth() / 3, actionDisplay.getHeight()));
+                redTeam.setBackground(new Color(122, 0, 0));
+                redTeam.setBorder(border);
+                
+                // Red team header
+                JLabel redTeamHeader = new JLabel("Red Team");
+                redTeamHeader.setFont(font);
+                redTeamHeader.setForeground(Color.WHITE);
+                redTeamHeader.setHorizontalAlignment(JLabel.CENTER);
+                redTeamHeader.setBorder(marginBorder);
+                redTeam.add(redTeamHeader, BorderLayout.NORTH);
+
+                // Red team players
+                JPanel redTeamPlayersPanel = new JPanel();
+                redTeamPlayersPanel.setBackground(new Color(122, 0, 0));
+                redTeamPlayersPanel.setForeground(Color.WHITE);
+                redTeamPlayersPanel.setLayout(new BoxLayout(redTeamPlayersPanel, BoxLayout.PAGE_AXIS));
+                
+                // Red team scores
+                JPanel redTeamScoresPanel = new JPanel();
+                redTeamScoresPanel.setBackground(new Color(122, 0, 0));
+                redTeamScoresPanel.setForeground(Color.WHITE);
+                redTeamScoresPanel.setLayout(new BoxLayout(redTeamScoresPanel, BoxLayout.PAGE_AXIS));
+
+                // Adds all the red team players and their scores to the players panel and scores panel
+                LinkedHashMap<String, Integer> redTeamPlayers = getTeamPlayerScoresOrdered(Game.RED_TEAM_NUMBER);
+                redTeamPlayers.forEach((codename, score) -> {
+                    JLabel codenameLabel = new JLabel(codename);
+                    codenameLabel.setFont(font.deriveFont(12F));
+                    codenameLabel.setForeground(Color.WHITE);
+
+                    JLabel scoreLabel = new JLabel(String.valueOf(score));
+                    scoreLabel.setFont(font.deriveFont(12F));
+                    scoreLabel.setForeground(Color.WHITE);
+
+                    redTeamPlayersPanel.add(codenameLabel);
+                    redTeamScoresPanel.add(scoreLabel);
+                });
+
+                JLabel redTeamTotalScoreLabel = new JLabel(String.valueOf(getTeamScore(Game.RED_TEAM_NUMBER)));
+                redTeamTotalScoreLabel.setFont(font.deriveFont(15F));
+                redTeamTotalScoreLabel.setForeground(Color.WHITE);
+                redTeamScoresPanel.add(redTeamTotalScoreLabel);
+
+                if (getLeadingTeam() == Game.RED_TEAM_NUMBER)
+                {
+                    flashJLabel(redTeamTotalScoreLabel);
+                }
+
+                redTeam.add(redTeamPlayersPanel, BorderLayout.WEST);
+                redTeam.add(redTeamScoresPanel, BorderLayout.EAST);
+
+                // Green team container for header, players, and scores
+                JPanel greenTeam = new JPanel(new BorderLayout());
+                greenTeam.setPreferredSize(new Dimension(actionDisplay.getWidth() / 3, actionDisplay.getHeight()));
+                greenTeam.setBackground(new Color(0, 122, 0));
+                greenTeam.setBorder(border);
+
+                // Green team header
+                JLabel greenTeamHeader = new JLabel("Green Team");
+                greenTeamHeader.setFont(font);
+                greenTeamHeader.setForeground(Color.WHITE);
+                greenTeamHeader.setHorizontalAlignment(JLabel.CENTER);
+                greenTeamHeader.setBorder(marginBorder);
+                greenTeam.add(greenTeamHeader, BorderLayout.NORTH);
+
+                // Green team players
+                JPanel greenTeamPlayersPanel = new JPanel();
+                greenTeamPlayersPanel.setBackground(new Color(0, 122, 0));
+                greenTeamPlayersPanel.setForeground(Color.WHITE);
+                greenTeamPlayersPanel.setLayout(new BoxLayout(greenTeamPlayersPanel, BoxLayout.PAGE_AXIS));
+
+                // Green team scores
+                JPanel greenTeamScoresPanel = new JPanel();
+                greenTeamScoresPanel.setBackground(new Color(0, 122, 0));
+                greenTeamScoresPanel.setForeground(Color.WHITE);
+                greenTeamScoresPanel.setLayout(new BoxLayout(greenTeamScoresPanel, BoxLayout.PAGE_AXIS));
+
+                // Adds all the green team players and their scores to the players panel and scores panel
+                LinkedHashMap<String, Integer> greenTeamPlayers = getTeamPlayerScoresOrdered(Game.GREEN_TEAM_NUMBER);
+                greenTeamPlayers.forEach((codename, score) -> {
+                    JLabel codenameLabel = new JLabel(codename);
+                    codenameLabel.setFont(font.deriveFont(12F));
+                    codenameLabel.setForeground(Color.WHITE);
+
+                    JLabel scoreLabel = new JLabel(String.valueOf(score));
+                    scoreLabel.setFont(font.deriveFont(12F));
+                    scoreLabel.setForeground(Color.WHITE);
+
+                    greenTeamPlayersPanel.add(codenameLabel);
+                    greenTeamScoresPanel.add(scoreLabel);
+
+                });
+
+                JLabel greenTeamTotalScoreLabel = new JLabel(String.valueOf(getTeamScore(Game.GREEN_TEAM_NUMBER)));
+                greenTeamTotalScoreLabel.setFont(font.deriveFont(15F));
+                greenTeamTotalScoreLabel.setForeground(Color.WHITE);
+                greenTeamScoresPanel.add(greenTeamTotalScoreLabel);
+
+                if (getLeadingTeam() == Game.GREEN_TEAM_NUMBER)
+                {
+                    flashJLabel(greenTeamTotalScoreLabel);
+                }
+
+                greenTeam.add(greenTeamPlayersPanel, BorderLayout.WEST);
+                greenTeam.add(greenTeamScoresPanel, BorderLayout.EAST);
+
+                // A container to hold everything (red team, log, green team)
+                JPanel panel = new JPanel(new FlowLayout());
+                panel.add(redTeam);
+                panel.add(logPanel);
+                panel.add(greenTeam);
+
+                actionDisplay.add(panel);
+
+                actionDisplay.getContentPane().setBackground(new Color(28, 0, 64));
+                actionDisplay.validate();
+
             }
 
-            // Wrap long messages
-            for (int i = 0; i < Math.ceil(1.0 * newActionMessage.length() / charLengthLimit); i++) {
-                String messagePiece = newActionMessage.substring(i * charLengthLimit, Math.min(i * charLengthLimit + charLengthLimit, newActionMessage.length()));
-
-                if (i > 0) {
-                    messagePiece = "..." + messagePiece;
-                }
-
-                JLabel actionMessage = new JLabel(messagePiece);
-                actionMessage.setFont(font.deriveFont(11F));
-                actionMessage.setHorizontalAlignment(JLabel.LEFT);
-                actionMessage.setForeground(messageColor);
-
-                this.actionLog.add(actionMessage);
-            }
-        }
-
-        final int logLengthLimit = 38;
-        // Display the messages. Display the newest messages if the log gets too long
-        for (int i = Math.max(0, this.actionLog.size() - logLengthLimit); i < this.actionLog.size(); i++) {
-            logMessagePanel.add(this.actionLog.get(i));
-        }
-
-        // Red team container for header, players, and scores
-        JPanel redTeam = new JPanel(new BorderLayout());
-        redTeam.setPreferredSize(new Dimension(actionDisplay.getWidth() / 3, actionDisplay.getHeight()));
-        redTeam.setBackground(new Color(122, 0, 0));
-        redTeam.setBorder(border);
-        
-        // Red team header
-        JLabel redTeamHeader = new JLabel("Red Team");
-        redTeamHeader.setFont(font);
-        redTeamHeader.setForeground(Color.WHITE);
-        redTeamHeader.setHorizontalAlignment(JLabel.CENTER);
-        redTeamHeader.setBorder(marginBorder);
-        redTeam.add(redTeamHeader, BorderLayout.NORTH);
-
-        // Red team players
-        JPanel redTeamPlayersPanel = new JPanel();
-        redTeamPlayersPanel.setBackground(new Color(122, 0, 0));
-        redTeamPlayersPanel.setForeground(Color.WHITE);
-        redTeamPlayersPanel.setLayout(new BoxLayout(redTeamPlayersPanel, BoxLayout.PAGE_AXIS));
-        
-        // Red team scores
-        JPanel redTeamScoresPanel = new JPanel();
-        redTeamScoresPanel.setBackground(new Color(122, 0, 0));
-        redTeamScoresPanel.setForeground(Color.WHITE);
-        redTeamScoresPanel.setLayout(new BoxLayout(redTeamScoresPanel, BoxLayout.PAGE_AXIS));
-
-        // Adds all the red team players and their scores to the players panel and scores panel
-        LinkedHashMap<String, Integer> redTeamPlayers = this.getTeamPlayerScoresOrdered(Game.RED_TEAM_NUMBER);
-        redTeamPlayers.forEach((codename, score) -> {
-            JLabel codenameLabel = new JLabel(codename);
-            codenameLabel.setFont(font.deriveFont(12F));
-            codenameLabel.setForeground(Color.WHITE);
-
-            JLabel scoreLabel = new JLabel(String.valueOf(score));
-            scoreLabel.setFont(font.deriveFont(12F));
-            scoreLabel.setForeground(Color.WHITE);
-
-            redTeamPlayersPanel.add(codenameLabel);
-            redTeamScoresPanel.add(scoreLabel);
         });
-
-        JLabel redTeamTotalScoreLabel = new JLabel(String.valueOf(this.getTeamScore(Game.RED_TEAM_NUMBER)));
-        redTeamTotalScoreLabel.setFont(font.deriveFont(15F));
-        redTeamTotalScoreLabel.setForeground(Color.WHITE);
-        redTeamScoresPanel.add(redTeamTotalScoreLabel);
-
-        if (this.getLeadingTeam() == Game.RED_TEAM_NUMBER)
-        {
-            this.flashJLabel(redTeamTotalScoreLabel);
-        }
-
-        redTeam.add(redTeamPlayersPanel, BorderLayout.WEST);
-        redTeam.add(redTeamScoresPanel, BorderLayout.EAST);
-
-        // Green team container for header, players, and scores
-        JPanel greenTeam = new JPanel(new BorderLayout());
-        greenTeam.setPreferredSize(new Dimension(actionDisplay.getWidth() / 3, actionDisplay.getHeight()));
-        greenTeam.setBackground(new Color(0, 122, 0));
-        greenTeam.setBorder(border);
-
-        // Green team header
-        JLabel greenTeamHeader = new JLabel("Green Team");
-        greenTeamHeader.setFont(font);
-        greenTeamHeader.setForeground(Color.WHITE);
-        greenTeamHeader.setHorizontalAlignment(JLabel.CENTER);
-        greenTeamHeader.setBorder(marginBorder);
-        greenTeam.add(greenTeamHeader, BorderLayout.NORTH);
-
-        // Green team players
-        JPanel greenTeamPlayersPanel = new JPanel();
-        greenTeamPlayersPanel.setBackground(new Color(0, 122, 0));
-        greenTeamPlayersPanel.setForeground(Color.WHITE);
-        greenTeamPlayersPanel.setLayout(new BoxLayout(greenTeamPlayersPanel, BoxLayout.PAGE_AXIS));
-
-        // Green team scores
-        JPanel greenTeamScoresPanel = new JPanel();
-        greenTeamScoresPanel.setBackground(new Color(0, 122, 0));
-        greenTeamScoresPanel.setForeground(Color.WHITE);
-        greenTeamScoresPanel.setLayout(new BoxLayout(greenTeamScoresPanel, BoxLayout.PAGE_AXIS));
-
-        // Adds all the green team players and their scores to the players panel and scores panel
-        LinkedHashMap<String, Integer> greenTeamPlayers = this.getTeamPlayerScoresOrdered(Game.GREEN_TEAM_NUMBER);
-        greenTeamPlayers.forEach((codename, score) -> {
-            JLabel codenameLabel = new JLabel(codename);
-            codenameLabel.setFont(font.deriveFont(12F));
-            codenameLabel.setForeground(Color.WHITE);
-
-            JLabel scoreLabel = new JLabel(String.valueOf(score));
-            scoreLabel.setFont(font.deriveFont(12F));
-            scoreLabel.setForeground(Color.WHITE);
-
-            greenTeamPlayersPanel.add(codenameLabel);
-            greenTeamScoresPanel.add(scoreLabel);
-
-        });
-
-        JLabel greenTeamTotalScoreLabel = new JLabel(String.valueOf(this.getTeamScore(Game.GREEN_TEAM_NUMBER)));
-        greenTeamTotalScoreLabel.setFont(font.deriveFont(15F));
-        greenTeamTotalScoreLabel.setForeground(Color.WHITE);
-        greenTeamScoresPanel.add(greenTeamTotalScoreLabel);
-
-        if (this.getLeadingTeam() == Game.GREEN_TEAM_NUMBER)
-        {
-            this.flashJLabel(greenTeamTotalScoreLabel);
-        }
-
-        greenTeam.add(greenTeamPlayersPanel, BorderLayout.WEST);
-        greenTeam.add(greenTeamScoresPanel, BorderLayout.EAST);
-
-        // A container to hold everything (red team, log, green team)
-        JPanel panel = new JPanel(new FlowLayout());
-        panel.add(redTeam);
-        panel.add(logPanel);
-        panel.add(greenTeam);
-
-        actionDisplay.add(panel);
-
-        actionDisplay.getContentPane().setBackground(new Color(28, 0, 64));
-        actionDisplay.validate();
+        
     }
 
     // Needed so garbage collector doesn't destroy it (???)
